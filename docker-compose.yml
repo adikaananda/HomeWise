@@ -1,0 +1,16 @@
+services:
+  homewise:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - backend/.env
+    environment:
+      DATABASE_PATH: /data/homewise.db
+      DIR_UNGGAHAN: /data/unggahan
+    volumes:
+      - homewise-data:/data
+    restart: unless-stopped
+
+volumes:
+  homewise-data:

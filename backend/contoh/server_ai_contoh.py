@@ -1,0 +1,42 @@
+import os
+import sys
+from pathlib import Path
+
+from flask import Flask, jsonify, request
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from app.layanan import simulasi_ai
+
+app = Flask(__name__)
+KUNCI = os.getenv("AI_API_KEY", "")
+
+
+@app.before_request
+def periksa_kunci():
+    if KUNCI and request.headers.get("Authorization") != f"Bearer {KUNCI}":
+        return jsonify({"pesan": "Tidak diizinkan"}), 401
+
+
+@app.post("/lokasi")
+def lokasi():
+    data = request.get_json()
+    return jsonify(simulasi_ai.analisis_lokasi(data["lat"], data["lng"], data.get("alamat")))
+
+
+@app.post("/kondisi-bangunan")
+def kondisi_bangunan():
+    daftar_id = request.form.get("foto_id", "").split(",")
+    foto = [
+        {"id": int(foto_id), "sidik": berkas.filename}
+        for foto_id, berkas in zip(daftar_id, request.files.getlist("foto"))
+    ]
+    return jsonify(simulasi_ai.analisis_foto(foto))
+
+
+@app.post("/penjelasan")
+def penjelasan():
+    return jsonify({"teks": None})
+
+
+if __name__ == "__main__":
+    app.run(port=int(os.getenv("PORT", "8000")))

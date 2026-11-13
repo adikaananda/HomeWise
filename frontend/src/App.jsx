@@ -1,0 +1,59 @@
+import { CangkangAplikasi } from "./komponen/tata-letak/Aplikasi";
+import { AdminAnalisis, AdminHarga, AdminLaporan, AdminPengguna, AdminRingkasan, AdminSumberData } from "./halaman/admin/Admin";
+import { DaftarInspeksi, DetailInspeksi } from "./halaman/analis/Inspeksi";
+import Bandingkan from "./halaman/pencari/Bandingkan";
+import Dasbor from "./halaman/pencari/Dasbor";
+import DetailProperti from "./halaman/pencari/detail/DetailProperti";
+import { RiwayatPembayaran, StatusPembayaran } from "./halaman/pencari/Pembayaran";
+import PropertiBaru from "./halaman/pencari/PropertiBaru";
+import PropertiSaya from "./halaman/pencari/PropertiSaya";
+import { Daftar, Masuk } from "./halaman/publik/Autentikasi";
+import Beranda from "./halaman/publik/Beranda";
+import Harga, { TidakDitemukan } from "./halaman/publik/Harga";
+import { cocokkan, useRouter } from "./lib/router";
+
+const PENCARI = ["pencari", "admin"];
+const ANALIS = ["analis", "admin"];
+const ADMIN = ["admin"];
+
+const RUTE = [
+  { pola: "/", halaman: Beranda },
+  { pola: "/harga", halaman: Harga },
+  { pola: "/masuk", halaman: Masuk },
+  { pola: "/daftar", halaman: Daftar },
+
+  { pola: "/app", halaman: Dasbor, peran: PENCARI },
+  { pola: "/app/properti", halaman: PropertiSaya, peran: PENCARI },
+  { pola: "/app/properti/baru", halaman: PropertiBaru, peran: PENCARI },
+  { pola: "/app/properti/:id", halaman: DetailProperti, peran: [...PENCARI, "analis"] },
+  { pola: "/app/bandingkan", halaman: Bandingkan, peran: PENCARI },
+  { pola: "/app/pembayaran", halaman: RiwayatPembayaran, peran: PENCARI },
+  { pola: "/app/pembayaran/:orderId", halaman: StatusPembayaran, peran: PENCARI },
+
+  { pola: "/analis", halaman: DaftarInspeksi, peran: ANALIS },
+  { pola: "/analis/inspeksi/:id", halaman: DetailInspeksi, peran: ANALIS },
+
+  { pola: "/admin", halaman: AdminRingkasan, peran: ADMIN },
+  { pola: "/admin/pengguna", halaman: AdminPengguna, peran: ADMIN },
+  { pola: "/admin/analisis", halaman: AdminAnalisis, peran: ADMIN },
+  { pola: "/admin/harga", halaman: AdminHarga, peran: ADMIN },
+  { pola: "/admin/sumber-data", halaman: AdminSumberData, peran: ADMIN },
+  { pola: "/admin/laporan", halaman: AdminLaporan, peran: ADMIN },
+];
+
+export default function App() {
+  const { jalur } = useRouter();
+
+  for (const rute of RUTE) {
+    const parameter = cocokkan(rute.pola, jalur);
+    if (!parameter) continue;
+    const Halaman = rute.halaman;
+    if (!rute.peran) return <Halaman {...parameter} />;
+    return (
+      <CangkangAplikasi peran={rute.peran}>
+        <Halaman key={jalur} {...parameter} />
+      </CangkangAplikasi>
+    );
+  }
+  return <TidakDitemukan />;
+}
