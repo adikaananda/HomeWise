@@ -3,7 +3,18 @@ from pathlib import Path
 from flask import Blueprint, current_app, send_from_directory
 
 from ..layanan import ai_klien, lokasi, midtrans, penjelasan
-from ..layanan.konstanta import INDIKATOR, JENIS_KERUSAKAN, KATEGORI_FASILITAS, PAKET, TUJUAN
+from ..layanan.konstanta import (
+    AREA_FOTO,
+    INDIKATOR,
+    JENIS_KERUSAKAN,
+    KATEGORI_FASILITAS,
+    PAKET,
+    PERTANYAAN_SURVEI,
+    PRIORITAS,
+    SUMBER_FOTO,
+    TUJUAN,
+)
+from ..keamanan import batasi_laju
 from ..respon import GalatAplikasi, sukses
 from ..validasi import SkemaCekCepat, baca_json
 
@@ -12,12 +23,9 @@ bp = Blueprint("publik", __name__, url_prefix="/api")
 
 @bp.get("/kesehatan")
 def kesehatan():
-    mode_ai = current_app.config["AI_MODE"]
-    if mode_ai == "remote" and not current_app.config["AI_BASE_URL"]:
-        mode_ai = "simulasi"
     return sukses({
         "status": "sehat",
-        "mode_ai": mode_ai,
+        "mode_ai": current_app.config["AI_MODE"] if current_app.config["AI_BASE_URL"] else "simulasi",
         "mode_pembayaran": midtrans.mode(),
     })
 
@@ -29,6 +37,10 @@ def konfigurasi():
         "indikator": INDIKATOR,
         "kategori_fasilitas": KATEGORI_FASILITAS,
         "jenis_kerusakan": JENIS_KERUSAKAN,
+        "area_foto": AREA_FOTO,
+        "sumber_foto": SUMBER_FOTO,
+        "pertanyaan_survei": PERTANYAAN_SURVEI,
+        "prioritas": PRIORITAS,
         "paket": [{"kode": k, **v} for k, v in PAKET.items()],
         "midtrans": {
             "mode": midtrans.mode(),
@@ -39,6 +51,7 @@ def konfigurasi():
 
 
 @bp.post("/cek-cepat")
+@batasi_laju(20)
 def cek_cepat():
     data = baca_json(SkemaCekCepat)
     mentah, sumber = ai_klien.analisis_lokasi(data.lat, data.lng, data.alamat)

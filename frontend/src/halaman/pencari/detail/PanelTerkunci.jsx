@@ -7,8 +7,8 @@ import { useAuth } from "../../../lib/auth";
 import { useNotifikasi } from "../../../lib/notifikasi";
 
 const MANFAAT = [
-  { ikon: LuCamera, teks: "Analisis foto kondisi bangunan dengan AI" },
-  { ikon: LuWallet, teks: "Rincian estimasi renovasi dan total investasi" },
+  { ikon: LuCamera, teks: "Analisis AI untuk semua foto survei" },
+  { ikon: LuWallet, teks: "Prioritas perbaikan, daftar material, dan total investasi" },
   { ikon: LuFileText, teks: "Laporan PDF terpadu dan rekomendasi pemeriksaan" },
 ];
 

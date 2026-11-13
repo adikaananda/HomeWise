@@ -1,4 +1,4 @@
-import { LuChartColumn, LuClipboardCheck, LuHouse, LuLockOpen, LuPlus, LuTicket } from "react-icons/lu";
+import { LuCamera, LuChartColumn, LuChevronRight, LuClipboardCheck, LuFileText, LuHouse, LuLockOpen, LuMapPin, LuPlus, LuTicket } from "react-icons/lu";
 import { KartuProperti } from "../../komponen/KartuProperti";
 import { KepalaHalaman } from "../../komponen/tata-letak/Aplikasi";
 import { GalatMuat, Kartu, KerangkaHalaman, Kosong, Lencana, Statistik, Tombol } from "../../komponen/ui";
@@ -6,7 +6,40 @@ import { api } from "../../lib/api";
 import { rupiah, tanggal, kapital } from "../../lib/format";
 import { useData, useJudul } from "../../lib/hooks";
 import { useKonfigurasi } from "../../lib/konfigurasi";
+import { Tautan } from "../../lib/router";
 import { NADA_STATUS_BAYAR } from "./Pembayaran";
+
+const PANDUAN = [
+  { ikon: LuMapPin, judul: "Cek lokasi dari rumah", teks: "Masukkan alamat dari iklan. Skor risiko dan fasilitas langsung keluar, gratis." },
+  { ikon: LuCamera, judul: "Foto saat survei", teks: "Buka mode survei di HP. Panduan menunjukkan area yang perlu difoto." },
+  { ikon: LuFileText, judul: "Baca laporan, lalu tawar", teks: "Lihat kerusakan, prioritas perbaikan, material, dan total investasi." },
+];
+
+function PerluTindakan({ properti }) {
+  const daftar = properti.filter((p) => p.tahap.kode !== "tervalidasi").slice(0, 3);
+  if (!daftar.length) return null;
+  return (
+    <Kartu judul="Lanjutkan dari sini" rapat style={{ marginBottom: 24 }}>
+      <ul className="daftar-tindakan">
+        {daftar.map((p) => (
+          <li key={p.id}>
+            <Tautan ke={p.tahap.kode === "kandidat" ? `/app/properti/${p.id}/survei` : `/app/properti/${p.id}`}>
+              <span className="pil-tahap" data-tahap={p.tahap.kode}>
+                <span className="pil-tahap__titik" aria-hidden="true" />
+                {p.tahap.label}
+              </span>
+              <span className="daftar-tindakan__teks">
+                <strong className="teks-kecil" style={{ display: "block" }}>{p.nama}</strong>
+                <span className="teks-mini teks-redup">{p.tahap.langkah}</span>
+              </span>
+              <LuChevronRight aria-hidden="true" className="daftar-tindakan__panah" />
+            </Tautan>
+          </li>
+        ))}
+      </ul>
+    </Kartu>
+  );
+}
 
 export default function Dasbor() {
   useJudul("Dasbor");
@@ -54,6 +87,7 @@ export default function Dasbor() {
 
       <div className="dasbor-kisi">
         <section>
+          <PerluTindakan properti={properti} />
           <div className="baris-antara" style={{ marginBottom: 16 }}>
             <h2 style={{ fontSize: "var(--teks-xl)" }}>Properti terbaru</h2>
             {properti.length > 0 && (
@@ -78,6 +112,23 @@ export default function Dasbor() {
         </section>
 
         <aside className="tumpuk">
+          {!properti.some((p) => p.tahap.urutan >= 2) && (
+            <Kartu judul="Cara memakai HomeWise">
+              <ol className="panduan-singkat">
+                {PANDUAN.map((l) => (
+                  <li key={l.judul}>
+                    <span className="panduan-singkat__ikon">
+                      <l.ikon aria-hidden="true" />
+                    </span>
+                    <div>
+                      <strong className="teks-kecil">{l.judul}</strong>
+                      <p className="teks-mini teks-redup">{l.teks}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </Kartu>
+          )}
           <Kartu judul="Transaksi terakhir" aksi={<Tombol ke="/app/pembayaran" varian="hantu" ukuran="kecil">Riwayat</Tombol>}>
             {pembayaran.length ? (
               <ul className="daftar-sederhana">

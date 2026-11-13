@@ -1,85 +1,67 @@
-import { useRef, useState } from "react";
-import { LuBadgeCheck, LuImagePlus, LuScanSearch, LuTrash2 } from "react-icons/lu";
+import { useState } from "react";
+import { LuBadgeCheck, LuCamera, LuImagePlus, LuScanSearch, LuTrash2 } from "react-icons/lu";
+import { LencanaSumberFoto, ModalUnggahFoto, ProgresSurvei } from "../../../komponen/Survei";
 import { FotoBertanda, TabelTemuan } from "../../../komponen/Temuan";
-import { CincinSkor, Isian, Kartu, Kosong, Lencana, Pemberitahuan, Tombol } from "../../../komponen/ui";
+import { CincinSkor, Kartu, Kosong, Lencana, Pemberitahuan, Tombol } from "../../../komponen/ui";
 import { api, urlBerkas } from "../../../lib/api";
+import { useAuth } from "../../../lib/auth";
 import { tanggal } from "../../../lib/format";
+import { labelArea, useKonfigurasi } from "../../../lib/konfigurasi";
 import { useNotifikasi } from "../../../lib/notifikasi";
+import { PanelTerkunci } from "./PanelTerkunci";
 
-export function UnggahFoto({ endpoint, onSelesai }) {
-  const beriTahu = useNotifikasi();
-  const input = useRef(null);
-  const [ruang, setRuang] = useState("");
-  const [seret, setSeret] = useState(false);
-  const [proses, setProses] = useState(false);
-
-  const unggah = async (daftar) => {
-    const berkas = [...daftar].filter((f) => f.type.startsWith("image/"));
-    if (!berkas.length) return;
-    if (berkas.some((f) => f.size > 10 * 1024 * 1024)) {
-      beriTahu("Ukuran setiap foto maksimal 10 MB.", "galat");
-      return;
-    }
-    const data = new FormData();
-    berkas.slice(0, 10).forEach((f) => data.append("foto", f));
-    if (ruang.trim()) data.append("ruang", ruang.trim());
-    setProses(true);
-    try {
-      const hasil = await api.unggah(endpoint, data);
-      beriTahu(`${berkas.length} foto berhasil diunggah.`);
-      setRuang("");
-      onSelesai(hasil);
-    } catch (e) {
-      beriTahu(e.message, "galat");
-    } finally {
-      setProses(false);
-      if (input.current) input.current.value = "";
-    }
-  };
+function KartuSurvei({ detail, onTambah }) {
+  const { pengguna } = useAuth();
+  const { kelengkapan } = detail.survei;
+  const milikSendiri = detail.properti.pengguna_id === pengguna.id;
+  const terkunci = detail.bangunan?.tervalidasi;
 
   return (
-    <div className="tumpuk" style={{ gap: 12 }}>
-      <Isian label="Ruangan atau bagian bangunan" placeholder="Misal: kamar utama, dapur, fasad depan" value={ruang} onChange={(e) => setRuang(e.target.value)} />
-      <label
-        className={`zona-unggah ${seret ? "zona-unggah--aktif" : ""}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setSeret(true);
-        }}
-        onDragLeave={() => setSeret(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setSeret(false);
-          unggah(e.dataTransfer.files);
-        }}
-      >
-        {proses ? <span className="pemuat" style={{ color: "var(--biru)" }} /> : <LuImagePlus aria-hidden="true" />}
-        <strong>{proses ? "Mengunggah…" : "Pilih atau seret foto ke sini"}</strong>
-        <span className="teks-mini teks-redup">JPG, PNG, atau WEBP. Maksimal 10 foto, 10 MB per foto.</span>
-        <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={(e) => unggah(e.target.files)} disabled={proses} />
-      </label>
-    </div>
+    <Kartu className="kartu-survei">
+      <div className="kartu-survei__isi">
+        <div className="kartu-survei__ikon">
+          <LuCamera aria-hidden="true" />
+        </div>
+        <div className="tumpuk" style={{ gap: 10, flex: 1, minWidth: 0 }}>
+          <div>
+            <h3>Foto saat survei ke lokasi</h3>
+            <p className="teks-kecil teks-redup">
+              Anda yang memotret, bukan penjual, jadi kerusakan tidak disembunyikan. Mode survei memandu area mana saja yang perlu difoto.
+            </p>
+          </div>
+          <ProgresSurvei kelengkapan={kelengkapan} />
+          {kelengkapan.belum.length > 0 && (
+            <div className="baris" style={{ flexWrap: "wrap", gap: 6 }}>
+              <span className="teks-mini teks-redup">Belum difoto:</span>
+              {kelengkapan.belum.map((a) => (
+                <Lencana key={a} nada="netral">
+                  {a}
+                </Lencana>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      {milikSendiri && !terkunci && (
+        <div className="baris" style={{ flexWrap: "wrap", marginTop: 16 }}>
+          <Tombol ke={`/app/properti/${detail.properti.id}/survei`} ikon={LuCamera}>
+            {detail.jumlah_foto ? "Lanjutkan survei" : "Mulai mode survei"}
+          </Tombol>
+          <Tombol varian="sekunder" ikon={LuImagePlus} onClick={onTambah}>
+            Unggah dari galeri
+          </Tombol>
+        </div>
+      )}
+    </Kartu>
   );
 }
 
-export function TabBangunan({ detail, setDetail }) {
+function GaleriFoto({ detail, setDetail }) {
+  const konfigurasi = useKonfigurasi();
   const beriTahu = useNotifikasi();
-  const [menganalisis, setMenganalisis] = useState(false);
   const { properti, foto, bangunan } = detail;
 
-  const analisis = async () => {
-    setMenganalisis(true);
-    try {
-      setDetail(await api.post(`/properti/${properti.id}/analisis-bangunan`));
-      beriTahu("Analisis kondisi bangunan selesai.");
-    } catch (e) {
-      beriTahu(e.message, "galat");
-    } finally {
-      setMenganalisis(false);
-    }
-  };
-
-  const hapusFoto = async (id) => {
+  const hapus = async (id) => {
     try {
       setDetail(await api.hapus(`/properti/${properti.id}/foto/${id}`));
     } catch (e) {
@@ -87,93 +69,131 @@ export function TabBangunan({ detail, setDetail }) {
     }
   };
 
-  const tervalidasi = bangunan?.tervalidasi;
-
   return (
-    <div className="tumpuk" style={{ gap: 20 }}>
-      {bangunan && (
-        <Kartu>
-          <div className="ringkasan-bangunan">
-            <CincinSkor skor={bangunan.skor_kondisi} ukuran={112} label="Skor kondisi" />
-            <div className="tumpuk" style={{ gap: 8 }}>
-              <div className="baris" style={{ flexWrap: "wrap", gap: 8 }}>
-                <h3>Kondisi visual bangunan</h3>
-                {tervalidasi ? (
-                  <Lencana nada="sukses" ikon={LuBadgeCheck}>
-                    Divalidasi analis
-                  </Lencana>
-                ) : (
-                  <Lencana>Hasil AI, belum divalidasi</Lencana>
-                )}
-              </div>
-              <p className="teks-redup">{bangunan.ringkasan}</p>
-              <span className="teks-mini teks-redup">Diperbarui {tanggal(bangunan.dibuat, true)}</span>
+    <div className="galeri">
+      {foto.map((f) => (
+        <figure key={f.id} className="galeri__item">
+          <img src={urlBerkas(f.url)} alt={`Foto ${labelArea(konfigurasi, f.area)}`} loading="lazy" />
+          <span className="galeri__label">{labelArea(konfigurasi, f.area)}</span>
+          <span className="galeri__sumber">
+            <LencanaSumberFoto kode={f.sumber} />
+          </span>
+          {!bangunan?.tervalidasi && (
+            <button type="button" className="galeri__aksi" onClick={() => hapus(f.id)} aria-label="Hapus foto">
+              <LuTrash2 />
+            </button>
+          )}
+        </figure>
+      ))}
+    </div>
+  );
+}
+
+function HasilAnalisis({ detail }) {
+  const { bangunan, foto } = detail;
+  const fotoBertemuan = foto.filter((f) => bangunan.temuan.some((t) => t.foto_id === f.id));
+  return (
+    <>
+      <Kartu>
+        <div className="ringkasan-bangunan">
+          <CincinSkor skor={bangunan.skor_kondisi} ukuran={112} label="Skor kondisi" />
+          <div className="tumpuk" style={{ gap: 8 }}>
+            <div className="baris" style={{ flexWrap: "wrap", gap: 8 }}>
+              <h3>Kondisi visual bangunan</h3>
+              {bangunan.tervalidasi ? (
+                <Lencana nada="sukses" ikon={LuBadgeCheck}>
+                  Divalidasi analis
+                </Lencana>
+              ) : (
+                <Lencana>Hasil AI, belum divalidasi</Lencana>
+              )}
             </div>
+            <p className="teks-redup">{bangunan.ringkasan}</p>
+            <span className="teks-mini teks-redup">Diperbarui {tanggal(bangunan.dibuat, true)}</span>
+          </div>
+        </div>
+      </Kartu>
+      {bangunan.ada_foto_iklan && (
+        <Pemberitahuan nada="peringatan">Sebagian temuan berasal dari foto iklan atau penjual. Pastikan kondisinya saat Anda survei.</Pemberitahuan>
+      )}
+      {fotoBertemuan.length > 0 && (
+        <Kartu judul="Letak kerusakan pada foto">
+          <div className="kisi-foto-bertanda">
+            {fotoBertemuan.map((f) => (
+              <FotoBertanda key={f.id} foto={f} temuan={bangunan.temuan} />
+            ))}
           </div>
         </Kartu>
       )}
+      <div>
+        <h3 style={{ marginBottom: 12 }}>Daftar temuan</h3>
+        <TabelTemuan temuan={bangunan.temuan} foto={foto} />
+      </div>
+    </>
+  );
+}
 
-      <div className="bangunan-kisi">
+export function TabBangunan({ detail, setDetail, muatUlang }) {
+  const beriTahu = useNotifikasi();
+  const [modal, setModal] = useState(false);
+  const [menganalisis, setMenganalisis] = useState(false);
+  const { properti, foto, bangunan, akses_premium: premium, survei } = detail;
+
+  const analisis = async () => {
+    setMenganalisis(true);
+    try {
+      setDetail(await api.post(`/properti/${properti.id}/analisis-bangunan`));
+      beriTahu("Analisis selesai. Lihat juga rincian biaya dan material di tab Biaya.");
+    } catch (e) {
+      beriTahu(e.message, "galat");
+    } finally {
+      setMenganalisis(false);
+    }
+  };
+
+  const bisaAnalisis = premium && foto.length > 0 && !bangunan?.tervalidasi;
+
+  return (
+    <div className="tumpuk" style={{ gap: 20 }}>
+      <KartuSurvei detail={detail} onTambah={() => setModal(true)} />
+
+      {foto.length > 0 ? (
         <Kartu
           judul="Foto bangunan"
-          sub={`${foto.length} foto. Foto yang jelas dan terang memberi hasil deteksi lebih akurat.`}
+          sub={`${foto.length} foto tersimpan`}
           aksi={
-            foto.length > 0 &&
-            !tervalidasi && (
+            bisaAnalisis && (
               <Tombol ikon={LuScanSearch} onClick={analisis} memuat={menganalisis}>
                 {bangunan ? "Analisis ulang" : "Analisis foto"}
               </Tombol>
             )
           }
         >
-          {foto.length ? (
-            <div className="galeri">
-              {foto.map((f) => (
-                <div key={f.id} className="galeri__item">
-                  <img src={urlBerkas(f.url)} alt={f.ruang || "Foto bangunan"} loading="lazy" />
-                  {f.ruang && <span className="galeri__label">{f.ruang}</span>}
-                  {!tervalidasi && (
-                    <button type="button" className="galeri__aksi" onClick={() => hapusFoto(f.id)} aria-label="Hapus foto">
-                      <LuTrash2 />
-                    </button>
-                  )}
-                </div>
-              ))}
+          {bisaAnalisis && !bangunan && survei.kelengkapan.belum.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <Pemberitahuan nada="peringatan">
+                {survei.kelengkapan.belum.length} area wajib belum difoto. Anda tetap bisa menganalisis sekarang, tetapi kerusakan di area itu tidak ikut
+                terhitung.
+              </Pemberitahuan>
             </div>
-          ) : (
-            <Kosong ikon={LuImagePlus} judul="Belum ada foto">
-              Unggah foto dinding, plafon, lantai, dan atap. Foto dari iklan juga bisa dipakai.
-            </Kosong>
           )}
+          <GaleriFoto detail={detail} setDetail={setDetail} />
         </Kartu>
-        <Kartu judul="Tambah foto">
-          {tervalidasi ? (
-            <Pemberitahuan nada="sukses">Temuan sudah divalidasi analis sehingga foto tidak dapat diubah lagi.</Pemberitahuan>
-          ) : (
-            <UnggahFoto endpoint={`/properti/${properti.id}/foto`} onSelesai={setDetail} />
-          )}
+      ) : (
+        <Kartu>
+          <Kosong ikon={LuCamera} judul="Belum ada foto bangunan">
+            Saat datang survei, buka halaman ini di HP lalu tekan Mulai mode survei. Foto langsung tersimpan dan siap dianalisis.
+          </Kosong>
         </Kartu>
-      </div>
-
-      {bangunan && (
-        <>
-          {foto.some((f) => bangunan.temuan.some((t) => t.foto_id === f.id)) && (
-            <Kartu judul="Penandaan temuan pada foto">
-              <div className="kisi-foto-bertanda">
-                {foto
-                  .filter((f) => bangunan.temuan.some((t) => t.foto_id === f.id))
-                  .map((f) => (
-                    <FotoBertanda key={f.id} foto={f} temuan={bangunan.temuan} />
-                  ))}
-              </div>
-            </Kartu>
-          )}
-          <div>
-            <h3 style={{ marginBottom: 12 }}>Daftar temuan</h3>
-            <TabelTemuan temuan={bangunan.temuan} foto={foto} />
-          </div>
-        </>
       )}
+
+      {!premium && foto.length > 0 && (
+        <PanelTerkunci properti={properti} onTerbuka={muatUlang} judul="Foto survei siap dianalisis" />
+      )}
+
+      {premium && bangunan && !bangunan.terkunci && <HasilAnalisis detail={detail} />}
+
+      <ModalUnggahFoto terbuka={modal} onTutup={() => setModal(false)} endpoint={`/properti/${properti.id}/foto`} onSelesai={setDetail} />
     </div>
   );
 }

@@ -45,6 +45,12 @@ export function KartuProperti({ properti, dipilih, onPilih, onSimpan }) {
           <p className="angka tebal" style={{ marginTop: 8 }}>
             {rupiahRingkas(properti.harga_penawaran)}
           </p>
+          {properti.tahap && (
+            <span className="pil-tahap" data-tahap={properti.tahap.kode}>
+              <span className="pil-tahap__titik" aria-hidden="true" />
+              {properti.tahap.label}
+            </span>
+          )}
         </div>
         <CincinSkor skor={properti.skor_lokasi} ukuran={58} tebal={6} label="Skor lokasi" />
       </div>

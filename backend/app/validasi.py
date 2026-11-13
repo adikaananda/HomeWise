@@ -3,6 +3,7 @@ from typing import Literal, Optional
 from flask import request
 from pydantic import BaseModel, Field, field_validator
 
+from .layanan.konstanta import PERTANYAAN_SURVEI
 from .respon import GalatAplikasi
 
 Tujuan = Literal["rumah_tinggal", "investasi_sewa", "restoran", "kafe", "kantor", "ruko"]
@@ -83,6 +84,25 @@ class SkemaUbahProperti(BaseModel):
     tersimpan: Optional[bool] = None
 
 
+class SkemaSurvei(BaseModel):
+    jawaban: dict[str, str] = {}
+    catatan: Optional[str] = Field(default=None, max_length=2000)
+
+    @field_validator("jawaban")
+    @classmethod
+    def jawaban_valid(cls, v):
+        opsi = {p["kode"]: p["opsi"] for p in PERTANYAAN_SURVEI}
+        for kode, nilai in v.items():
+            if kode not in opsi or nilai not in opsi[kode]:
+                raise ValueError(f"Jawaban '{kode}' tidak dikenal")
+        return v
+
+
+class SkemaGantiSandi(BaseModel):
+    sandi_lama: str
+    sandi_baru: str = Field(min_length=8, max_length=128)
+
+
 class SkemaPembayaran(BaseModel):
     paket: Literal["laporan_tunggal", "paket_hemat", "inspeksi_profesional"]
     properti_id: Optional[int] = None
@@ -124,6 +144,14 @@ class SkemaUbahPengguna(BaseModel):
     kredit_laporan: Optional[int] = Field(default=None, ge=0, le=10_000)
 
 
+class MaterialReferensi(BaseModel):
+    nama: str = Field(min_length=2, max_length=80)
+    satuan: str = Field(min_length=1, max_length=20)
+    koefisien: float = Field(gt=0, le=10_000)
+    kemasan: Optional[str] = Field(default=None, max_length=40)
+    isi_kemasan: Optional[float] = Field(default=None, gt=0, le=100_000)
+
+
 class SkemaHargaReferensi(BaseModel):
     kode: str = Field(min_length=2, max_length=50, pattern=r"^[a-z0-9_]+$")
     nama: str = Field(min_length=3, max_length=120)
@@ -131,6 +159,7 @@ class SkemaHargaReferensi(BaseModel):
     satuan: str = Field(default="m2", max_length=20)
     harga_material: int = Field(ge=0)
     harga_upah: int = Field(ge=0)
+    material: list[MaterialReferensi] = []
     aktif: bool = True
 
 
@@ -140,6 +169,7 @@ class SkemaUbahHargaReferensi(BaseModel):
     satuan: Optional[str] = None
     harga_material: Optional[int] = Field(default=None, ge=0)
     harga_upah: Optional[int] = Field(default=None, ge=0)
+    material: Optional[list[MaterialReferensi]] = None
     aktif: Optional[bool] = None
 
 

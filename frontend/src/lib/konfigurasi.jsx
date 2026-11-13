@@ -6,6 +6,10 @@ const CADANGAN = {
   indikator: {},
   kategori_fasilitas: {},
   jenis_kerusakan: {},
+  area_foto: [],
+  sumber_foto: {},
+  pertanyaan_survei: [],
+  prioritas: {},
   paket: [],
   midtrans: { mode: "simulasi", client_key: "", produksi: false },
 };
@@ -28,4 +32,8 @@ export function useKonfigurasi() {
 
 export function labelTujuan(konfigurasi, kode) {
   return konfigurasi.tujuan.find((t) => t.kode === kode)?.label || kode?.replace(/_/g, " ");
+}
+
+export function labelArea(konfigurasi, kode) {
+  return konfigurasi.area_foto.find((a) => a.kode === kode)?.label || "Area lain";
 }

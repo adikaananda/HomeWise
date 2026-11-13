@@ -3,7 +3,21 @@
 **AI-Driven Decision Support for Smarter Property Investment**
 *Assess the Location. Understand the Property. Invest Smarter.*
 
-HomeWise adalah web app pendukung keputusan properti: menilai kelayakan lokasi berdasarkan tujuan pembelian, mendeteksi indikasi kerusakan dari foto bangunan, mengestimasi biaya renovasi, menghitung total investasi awal, dan menerbitkan laporan PDF. Prototype ini sudah lengkap frontend, backend, database, pembayaran Midtrans, dan titik integrasi model AI.
+HomeWise adalah web app pendukung keputusan properti: menilai kelayakan lokasi berdasarkan tujuan pembelian, memandu pembeli memotret bangunan saat survei, mendeteksi indikasi kerusakan, menghitung prioritas perbaikan, daftar material, biaya renovasi, dan total investasi awal, lalu menerbitkan laporan PDF. Aplikasi ini lengkap dengan frontend, backend, database bermigrasi, pembayaran Midtrans, dan satu titik integrasi model AI. Begitu model AI dipasang, aplikasi siap diluncurkan.
+
+### Alur pengguna
+
+```
+ Dari rumah                   Saat survei (HP)                 Setelah survei
+ ───────────                  ────────────────                 ──────────────
+ Tempel alamat iklan   ──►    Buka Mode Survei          ──►    Buka Laporan Lengkap
+ Skor lokasi GRATIS           Checklist 8 area foto            AI menandai kerusakan
+ (risiko, fasilitas)          Pertanyaan ke warga/penjual      Prioritas + material + biaya
+                              Foto tersimpan langsung          PDF untuk menawar harga
+        Tahap: Kandidat  ──►  Disurvei  ──►  Dianalisis  ──►  Tervalidasi (opsional, analis)
+```
+
+**Siapa yang memotret?** Pembeli sendiri saat survei, bukan penjual. Foto dari iklan tetap bisa diunggah, tetapi diberi label "Iklan / penjual" dan temuan dari foto tersebut ditandai belum diverifikasi di laporan. Bila pembeli ingin pihak netral, ia memesan Inspeksi Profesional dan analis HomeWise yang memotret serta memvalidasi.
 
 ---
 
@@ -32,13 +46,13 @@ HomeWise adalah web app pendukung keputusan properti: menilai kelayakan lokasi b
 | Peran | Fitur |
 |---|---|
 | **Publik** | Landing page dengan cek cepat lokasi tanpa login, halaman harga, daftar, masuk |
-| **Property seeker** | Dasbor, input properti (cari alamat, tempel koordinat, atau klik peta), Quick Location Intelligence, peta risiko & fasilitas, pilihan tujuan investasi (skor dihitung ulang otomatis), unggah foto & analisis kondisi bangunan, estimasi biaya renovasi, total investasi awal, simpan & bandingkan hingga 4 properti, unduh laporan PDF, pembayaran Midtrans, pesan inspeksi profesional |
+| **Property seeker** | Dasbor dengan "Lanjutkan dari sini" dan tahap tiap properti, input properti (cari alamat, tempel koordinat, klik peta, atau "Saya sedang di lokasi"), Quick Location Intelligence, peta risiko & fasilitas, pilihan tujuan investasi (skor dihitung ulang otomatis), **Mode Survei** di HP (checklist area foto dengan kamera langsung + pertanyaan survei tersimpan otomatis), label sumber foto, analisis kondisi bangunan, **prioritas perbaikan** (mendesak/disarankan/kosmetik), **daftar belanja material** yang bisa disalin ke WhatsApp, estimasi renovasi, total investasi (penuh dan minimum), simpan & bandingkan hingga 4 properti, laporan PDF, pembayaran Midtrans, pesan inspeksi, profil & ganti sandi |
 | **Property analyst** | Daftar permintaan inspeksi, ambil tugas, atur jadwal, catatan pemeriksaan, unggah foto lapangan, konfirmasi/sesuaikan/tolak temuan AI, tambah temuan, validasi & terbitkan ke laporan pengguna |
-| **Admin** | Ringkasan platform, pengguna & hak akses, pemantauan analisis (durasi, kegagalan, keyakinan AI, kesesuaian dengan analis), harga referensi renovasi (CRUD), sumber data geospasial, daftar laporan |
+| **Admin** | Ringkasan platform, pengguna & hak akses, pemantauan analisis (durasi, kegagalan, keyakinan AI, kesesuaian dengan analis), harga referensi renovasi beserta **koefisien material AHSP** (CRUD), sumber data geospasial, daftar laporan |
 
 **Model bisnis yang sudah berjalan di kode:**
 
-- *Freemium* — ringkasan lokasi selalu gratis.
+- *Freemium* — ringkasan lokasi, mode survei, dan penyimpanan foto selalu gratis. Pengguna membayar saat ingin foto surveinya dianalisis.
 - *Pay-per-report* — Laporan Lengkap Rp49.000 per properti.
 - *Paket kredit* — Paket Hemat 5 laporan Rp199.000.
 - *Inspection partnership* — Inspeksi Profesional Rp750.000, otomatis membuat permintaan untuk analis.
@@ -101,12 +115,14 @@ Halaman masuk menyediakan tombol isi otomatis untuk ketiga akun.
 **Skenario demo yang disarankan untuk juri:**
 
 1. Buka beranda, klik salah satu lokasi contoh di hero → skor lokasi langsung dihitung tanpa login.
-2. Masuk sebagai *property seeker* → buka "Rumah 2 Lantai Bintaro" (laporan sudah terbuka) → jelajahi tab Lokasi, Kondisi bangunan, Biaya & investasi, Laporan → unduh PDF.
-3. Buka "Ruko Sudut Dago" → tab Kondisi bangunan terkunci → buka laporan (mode simulasi pembayaran) atau pakai 1 kredit demo.
-4. Ubah tujuan pembelian dari "Rumah tinggal" ke "Restoran" → skor dan bobot indikator berubah.
-5. Pilih 2–3 properti di "Properti saya" → Bandingkan.
-6. Masuk sebagai *analyst* → ambil permintaan inspeksi Bintaro → isi catatan → tolak/sesuaikan temuan → Validasi & terbitkan. Laporan pengguna kini berstatus tervalidasi dan estimasi biaya ikut diperbarui.
-7. Masuk sebagai *admin* → ubah harga referensi, lihat pemantauan analisis.
+2. Masuk sebagai *property seeker*. Dasbor menampilkan tiga properti di tahap berbeda.
+3. Buka "Ruko Sudut Dago" (tahap Kandidat) → **Mulai mode survei**. Paling enak dicoba di HP atau mode responsif browser: ambil foto per area, jawab pertanyaan survei.
+4. Buka "Rumah Sewa Dekat Stasiun Bekasi" (tahap Disurvei) → tab Kondisi bangunan → foto sudah ada → buka Laporan Lengkap (simulasi pembayaran atau pakai 1 kredit demo) → **Analisis foto**.
+5. Buka "Rumah 2 Lantai Bintaro" (tahap Dianalisis) → tab Biaya & investasi: prioritas perbaikan, rincian pekerjaan, **daftar belanja material** (tombol Salin daftar) → unduh PDF.
+6. Ubah tujuan pembelian dari "Rumah tinggal" ke "Restoran" → skor dan bobot indikator berubah.
+7. Pilih 2–3 properti di "Properti saya" → Bandingkan.
+8. Masuk sebagai *analyst* → ambil permintaan inspeksi Bintaro → isi catatan → tolak/sesuaikan temuan → Validasi & terbitkan. Laporan pengguna kini berstatus tervalidasi dan estimasi biaya ikut diperbarui.
+9. Masuk sebagai *admin* → ubah harga atau koefisien material pada Harga referensi, lihat pemantauan analisis.
 
 ## 5. Struktur proyek
 
@@ -122,7 +138,8 @@ homewise/
 │   │   ├── __init__.py        # buat_aplikasi(): blueprint, CORS, penyajian frontend
 │   │   ├── konfigurasi.py     # semua konfigurasi dari environment
 │   │   ├── db.py              # helper SQLite (satu, banyak, simpan, perbarui, ...)
-│   │   ├── skema.sql          # skema database lengkap
+│   │   ├── skema.sql          # skema database terbaru (instalasi baru)
+│   │   ├── migrasi.py         # migrasi berversi untuk database yang sudah berjalan
 │   │   ├── seed.py            # data awal & akun demo
 │   │   ├── keamanan.py        # hash sandi, JWT, dekorator @wajib_login(peran)
 │   │   ├── validasi.py        # skema Pydantic untuk setiap request
@@ -134,15 +151,16 @@ homewise/
 │   │       ├── ai_klien.py    # ★ SATU-SATUNYA titik integrasi model AI
 │   │       ├── simulasi_ai.py # keluaran AI tiruan (deterministik) untuk demo
 │   │       ├── lokasi.py      # skor indikator & bobot per tujuan
-│   │       ├── biaya.py       # mesin estimasi renovasi
+│   │       ├── biaya.py       # estimasi renovasi, prioritas, kebutuhan material
+│   │       ├── ahsp.py        # koefisien material bawaan (AHSP PUPR)
 │   │       ├── investasi.py   # total investasi & biaya transaksi
 │   │       ├── penjelasan.py  # narasi templat (cadangan bila LLM belum ada)
 │   │       ├── properti.py    # orkestrasi analisis & susunan data detail
 │   │       ├── pembayaran.py  # alur transaksi & penerapan manfaat paket
 │   │       ├── midtrans.py    # Snap, cek status, verifikasi tanda tangan
 │   │       ├── laporan_pdf.py # PDF bermerek
-│   │       ├── berkas.py      # unggah & validasi foto
-│   │       └── konstanta.py   # tujuan, bobot, paket, asumsi transaksi
+│   │       ├── berkas.py      # unggah, rotasi, kompres, hapus EXIF/GPS foto
+│   │       └── konstanta.py   # tujuan, bobot, area foto, pertanyaan survei, prioritas, paket
 │   ├── contoh/
 │   │   └── server_ai_contoh.py  # contoh server AI yang memenuhi kontrak
 │   └── tests/test_api.py
@@ -160,9 +178,11 @@ homewise/
         │   ├── tata-letak/    # Logo, navbar publik, cangkang aplikasi per peran
         │   ├── ilustrasi/     # ilustrasi SVG sesuai palet merek
         │   ├── Peta.jsx  Pembayaran.jsx  KartuProperti.jsx  Temuan.jsx
+        │   ├── Survei.jsx     # progres survei, tombol kamera, modal unggah, tahap, lencana prioritas
         ├── halaman/
         │   ├── publik/        # Beranda, Harga, Masuk, Daftar
-        │   ├── pencari/       # Dasbor, PropertiSaya, PropertiBaru, Bandingkan, Pembayaran, detail/
+        │   ├── Profil.jsx     # profil & ganti sandi (semua peran)
+        │   ├── pencari/       # Dasbor, PropertiSaya, PropertiBaru, ModeSurvei, Bandingkan, Pembayaran, detail/
         │   ├── analis/        # DaftarInspeksi, DetailInspeksi
         │   └── admin/         # Ringkasan, Pengguna, Analisis, Harga, SumberData, Laporan
         └── data/gambar.js     # daftar slot foto
@@ -176,7 +196,8 @@ homewise/
 
 | Variabel | Bawaan | Keterangan |
 |---|---|---|
-| `SECRET_KEY` | — | **Wajib diganti** di produksi. Kunci penanda tangan JWT. |
+| `LINGKUNGAN` | `pengembangan` | Set `produksi` saat rilis. Server menolak berjalan bila `SECRET_KEY` masih bawaan atau kurang dari 32 karakter, dan header HSTS diaktifkan. |
+| `SECRET_KEY` | — | **Wajib diganti** di produksi. Kunci penanda tangan JWT. Buat dengan `python -c "import secrets; print(secrets.token_urlsafe(48))"`. |
 | `JWT_KEDALUWARSA_JAM` | `72` | Masa berlaku sesi |
 | `DATABASE_PATH` | `./data/homewise.db` | Lokasi berkas SQLite |
 | `DIR_UNGGAHAN` | `./data/unggahan` | Folder foto bangunan |
@@ -245,7 +266,7 @@ Response (JSON) — **semua field wajib**:
 
 ### 7.2 `POST /kondisi-bangunan` — AI Building Condition Assessment
 
-Request: `multipart/form-data` dengan beberapa field `foto` (berkas gambar) dan field `foto_id` berisi ID foto dipisah koma, berurutan sama dengan berkas.
+Request: `multipart/form-data` dengan beberapa field `foto` (berkas JPEG, sudah dirotasi sesuai EXIF dan diperkecil ke sisi terpanjang 2000 px), field `foto_id` berisi ID foto dipisah koma, dan field `area` berisi kode area per foto dengan urutan yang sama (`fasad`, `dinding_bawah`, `sudut_bukaan`, `plafon_basah`, `kamar_mandi`, `lantai`, `atap_talang`, `lainnya`). Area bisa dipakai model sebagai konteks.
 
 Response:
 
@@ -267,7 +288,13 @@ Response:
 - `jenis`: `retak_dinding`, `cat_mengelupas`, `noda_lembap`, `kerusakan_plafon`, `keramik_rusak`, `atap_bocor`.
 - `kotak`: bounding box ternormalisasi 0–1 relatif terhadap lebar/tinggi foto (dipakai untuk menggambar penanda di UI).
 - `luas_m2`: estimasi luas area rusak. Bila model belum bisa mengestimasi, kirim nilai default per jenis; analis dapat mengoreksi.
-- Biaya renovasi **dihitung backend** (`layanan/biaya.py`) dari `jenis × tingkat × luas_m2 × harga referensi`.
+- Biaya renovasi, **prioritas**, dan **kebutuhan material** dihitung backend (`layanan/biaya.py`), bukan oleh model:
+  - `jenis × tingkat` → daftar pekerjaan (misal retak sedang → bobok plester + acian + cat).
+  - `luas_m2 × faktor` → volume pekerjaan.
+  - volume × harga referensi → biaya material + upah.
+  - volume × koefisien material AHSP → kebutuhan material, dibulatkan ke kemasan (sak, galon, dus).
+  - `jenis × tingkat` → prioritas (`MATRIKS_PRIORITAS` di `konstanta.py`).
+- Backend **membersihkan** respons model: temuan dengan `jenis`/`tingkat` di luar daftar, `luas_m2` tidak valid, atau `foto_id` yang tidak dikirim akan dibuang. Kepercayaan dibatasi 0–1. Respons `/lokasi` yang tidak memuat kunci wajib dicatat sebagai gagal dan pengguna mendapat pesan ramah.
 
 ### 7.3 `POST /penjelasan` — LLM (opsional)
 
@@ -312,17 +339,21 @@ SQLite dipilih agar prototype langsung jalan tanpa server database. Skema lengka
 | Tabel | Isi |
 |---|---|
 | `pengguna` | akun, peran (`pencari`/`analis`/`admin`), kredit laporan, status aktif |
-| `properti` | data properti, koordinat, tujuan, harga, status laporan terbuka |
+| `properti` | data properti, koordinat, tujuan, harga, status laporan terbuka, jawaban survei (JSON) |
 | `analisis_lokasi` | data mentah dari AI + hasil skor (JSON) |
-| `foto_bangunan` | foto dari pengguna atau analis |
+| `foto_bangunan` | foto, area (`fasad`, `plafon_basah`, ...), sumber (`survei`/`iklan`/`analis`) |
 | `analisis_bangunan` | temuan kerusakan (JSON), skor kondisi, status validasi |
-| `estimasi_biaya` | rincian pekerjaan (JSON), subtotal, kontingensi, total, rentang |
+| `estimasi_biaya` | rincian pekerjaan berprioritas, kebutuhan material, ringkasan per prioritas (JSON), total, rentang |
 | `inspeksi` | permintaan inspeksi, analis, jadwal, catatan, draf validasi |
 | `pembayaran` | transaksi Midtrans/simulasi, status, penerapan manfaat |
-| `harga_referensi` | harga satuan material & upah per pekerjaan |
+| `harga_referensi` | harga satuan material & upah per pekerjaan, koefisien material (JSON) |
 | `sumber_data` | daftar sumber data geospasial & statusnya |
 | `laporan` | catatan setiap PDF yang diterbitkan |
 | `log_analisis` | log setiap panggilan AI (durasi, status, sumber) |
+
+**Migrasi skema.** Versi skema disimpan di `PRAGMA user_version`. Saat aplikasi menyala, `app/migrasi.py` membuat skema terbaru untuk database baru, atau menjalankan langkah migrasi yang belum diterapkan untuk database lama, tanpa menghapus data. Untuk perubahan skema berikutnya, tambahkan fungsi `_ke_versi_3` ke `MIGRASI`, naikkan `VERSI_TERBARU`, dan perbarui `skema.sql`. Estimasi biaya lama dihitung ulang otomatis saat dibuka bila formatnya berubah.
+
+SQLite dijalankan dalam mode WAL dengan `busy_timeout`, sehingga aman dipakai beberapa worker gunicorn untuk trafik awal.
 
 **Migrasi ke PostgreSQL** (bila trafik bertambah): semua query berada di `app/db.py` dan modul `layanan/`/`rute/`, memakai SQL standar. Ganti `ambil_koneksi()` dengan driver `psycopg`, ubah placeholder `?` menjadi `%s`, dan sesuaikan `AUTOINCREMENT` → `SERIAL`, `datetime('now')` → `NOW()`.
 
@@ -338,12 +369,14 @@ Semua respons berformat `{ "sukses": true, "data": ... }` atau `{ "sukses": fals
 | POST | `/api/auth/daftar` | publik | `{nama, email, sandi, telepon?}` |
 | POST | `/api/auth/masuk` | publik | `{email, sandi}` → token |
 | GET/PATCH | `/api/auth/saya` | login | Profil |
+| POST | `/api/auth/ganti-sandi` | login | `{sandi_lama, sandi_baru}` |
 | GET | `/api/dasbor` | login | Statistik & properti terbaru |
 | GET/POST | `/api/properti` | pencari | Daftar (`?cari=&tersimpan=1`) / buat + analisis lokasi |
 | GET/PATCH/DELETE | `/api/properti/:id` | pemilik/staf | Detail lengkap / ubah (tujuan → skor ulang) / hapus |
 | POST | `/api/properti/:id/analisis-lokasi` | pemilik/staf | Jalankan ulang analisis lokasi |
-| POST | `/api/properti/:id/foto` | premium | Unggah foto (`multipart`, field `foto`, `ruang`) |
-| DELETE | `/api/properti/:id/foto/:fotoId` | premium | Hapus foto |
+| POST | `/api/properti/:id/foto` | pemilik/staf | Unggah foto (`multipart`: `foto`, `area`, `sumber` = `survei`/`iklan`). Gratis, maks. 40 foto per properti |
+| DELETE | `/api/properti/:id/foto/:fotoId` | pemilik/staf | Hapus foto (dikunci setelah divalidasi analis) |
+| PUT | `/api/properti/:id/survei` | pemilik | Simpan jawaban checklist survei `{jawaban: {kode: opsi}, catatan}` |
 | POST | `/api/properti/:id/analisis-bangunan` | premium | Analisis foto + estimasi biaya |
 | POST | `/api/properti/:id/buka-kredit` | pemilik | Buka laporan dengan 1 kredit |
 | GET | `/api/properti/:id/laporan.pdf` | premium | Unduh PDF |
@@ -357,7 +390,7 @@ Semua respons berformat `{ "sukses": true, "data": ... }` atau `{ "sukses": fals
 | GET | `/api/inspeksi/:id` | terkait | Detail + analisis properti |
 | POST | `/api/inspeksi/:id/ambil` | analis | Ambil permintaan |
 | PATCH | `/api/inspeksi/:id` | analis | `{jadwal?, catatan?, status?}` |
-| POST | `/api/inspeksi/:id/foto` | analis | Foto lapangan |
+| POST | `/api/inspeksi/:id/foto` | analis | Foto lapangan (`foto`, `area`), otomatis bersumber `analis` |
 | PUT | `/api/inspeksi/:id/temuan` | analis | Simpan draf validasi |
 | POST | `/api/inspeksi/:id/validasi` | analis | Terapkan validasi & terbitkan |
 | GET | `/api/admin/ringkasan` | admin | Statistik platform |
@@ -387,9 +420,10 @@ Semua token ada di `frontend/src/gaya/token.css` dan diturunkan dari palet logo 
 - **Tipografi:** *Plus Jakarta Sans* (typeface karya desainer Indonesia) — satu keluarga, skala 12/14/16/18/22/28/36 px, angka tabular untuk harga dan skor.
 - **Radius bertingkat:** 6 px (penanda), 10 px (tombol/input), 14 px (kartu kecil), 20 px (kartu), 28 px (panel hero & bento).
 - **Bayangan** bernuansa biru, bukan abu-abu netral.
+- **Prioritas** punya warna tetap di seluruh aplikasi dan PDF: merah = mendesak, kuning = disarankan, hijau = kosmetik. **Tahap properti** memakai titik berwarna: abu-abu Kandidat, tosca Disurvei, biru Dianalisis, hijau Tervalidasi.
 - **Komponen inti:** Tombol (utama, sekunder, hantu, lime, bahaya; kecil/besar), Isian/Pilihan/AreaTeks dengan label & pesan galat, Lencana bernada, Kartu, Tab, Segmen, Modal (bottom sheet di ponsel), Toast, CincinSkor, BatangSkor, Kosong, Kerangka (skeleton).
 - **Aksesibilitas:** fokus keyboard terlihat, `aria` pada tab/dialog/switch, tautan lewati konten, `prefers-reduced-motion` dihormati, kontras teks memenuhi WCAG AA.
-- **Responsif:** sidebar di desktop; topbar + laci menu + navigasi bawah dengan tombol tambah di ponsel.
+- **Responsif:** sidebar di desktop; topbar + laci menu + navigasi bawah dengan tombol tambah di ponsel. Mode Survei memakai tata letak layar penuh khusus ponsel dengan tombol kamera besar dan bilah "Selesai survei" yang menempel di bawah.
 
 ## 12. Gambar Freepik
 
@@ -439,7 +473,7 @@ cd backend
 pytest -q
 ```
 
-Tes mencakup pendaftaran & login, proteksi token, pembuatan properti & skor ulang per tujuan, pembatasan fitur premium, pembayaran simulasi, paket kredit (idempoten), unggah foto, analisis bangunan, PDF, alur analis hingga validasi, batasan peran admin, dan verifikasi webhook Midtrans (valid & palsu).
+Tes mencakup migrasi otomatis, unggah foto survei sebelum bayar, checklist survei, prioritas & material, ubah koefisien material oleh admin, pembersihan respons AI, ganti sandi, penolakan `SECRET_KEY` bawaan di produksi, pendaftaran & login, proteksi token, pembuatan properti & skor ulang per tujuan, pembatasan fitur premium, pembayaran simulasi, paket kredit (idempoten), unggah foto, analisis bangunan, PDF, alur analis hingga validasi, batasan peran admin, dan verifikasi webhook Midtrans (valid & palsu).
 
 ## 15. Checklist menuju rilis
 
@@ -450,20 +484,39 @@ Sudah siap:
 - [x] Pembayaran Midtrans dengan verifikasi tanda tangan, cek nominal, dan penerapan manfaat idempoten
 - [x] Penanganan galat terpusat dengan pesan berbahasa Indonesia
 - [x] Laporan PDF, log analisis, pemantauan kualitas AI
-- [x] Antarmuka responsif & aksesibel
+- [x] Antarmuka responsif & aksesibel, termasuk Mode Survei untuk ponsel
+- [x] Migrasi database berversi, SQLite mode WAL
+- [x] Pembatasan laju untuk masuk, daftar, ganti sandi, dan cek cepat publik (per IP, per proses)
+- [x] Header keamanan (nosniff, frame deny, referrer, permissions, HSTS di produksi)
+- [x] Foto dirotasi, diperkecil, dan data EXIF/GPS dihapus sebelum disimpan
+- [x] Validasi respons model AI terhadap kontrak
 
 Sebelum produksi:
 
 - [ ] Ganti `AI_MODE=remote` dan hubungkan model AI (bagian 7)
 - [ ] Isi kunci Midtrans produksi & URL notifikasi
-- [ ] Ganti `SECRET_KEY`, matikan `SEED_OTOMATIS` setelah data awal dibuat, dan ganti sandi akun demo
+- [ ] Set `LINGKUNGAN=produksi`, isi `SECRET_KEY` acak, set `SEED_OTOMATIS=false` **sebelum** menyalakan server pertama kali, lalu buat akun admin sendiri (lihat di bawah)
+- [ ] Tinjau koefisien material dan harga referensi sesuai wilayah peluncuran (Admin → Harga referensi, atau `INDEKS_HARGA_WILAYAH`)
 - [ ] Tambahkan foto Freepik (bagian 12)
 - [ ] Pertimbangkan PostgreSQL & penyimpanan objek (S3/GCS) untuk foto bila pengguna bertambah
-- [ ] Tambahkan rate limiting di reverse proxy untuk `/api/cek-cepat` dan `/api/auth/*`
+- [ ] Untuk lebih dari satu server, pindahkan pembatasan laju ke reverse proxy (Nginx `limit_req`) atau Redis
+- [ ] Fitur lupa kata sandi membutuhkan layanan email (SMTP/transactional email). Sementara itu admin dapat membantu reset lewat database
+
+**Membuat akun admin pertama di produksi** (saat `SEED_OTOMATIS=false`):
+
+```bash
+cd backend
+python -c "
+from app import buat_aplikasi, db
+from app.keamanan import hash_sandi
+app = buat_aplikasi()
+with app.app_context():
+    db.simpan('pengguna', {'nama': 'Admin', 'email': 'admin@domain-anda.com',
+              'sandi_hash': hash_sandi('ganti-sandi-kuat'), 'peran': 'admin'})
+"
+```
 - [ ] Untuk geocoding volume tinggi, gunakan server Nominatim sendiri atau penyedia berbayar (kebijakan Nominatim publik: maks. 1 permintaan/detik)
 
 ---
 
 HomeWise bukan marketplace jual-beli dan bukan pengganti inspeksi profesional. HomeWise membantu pengguna menentukan properti mana yang layak dipertimbangkan lebih lanjut.
-#   H o m e W i s e  
- 

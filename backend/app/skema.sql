@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS properti (
     jumlah_lantai INTEGER DEFAULT 1,
     sumber_iklan TEXT,
     catatan TEXT,
+    data_survei TEXT,
     tersimpan INTEGER NOT NULL DEFAULT 1,
     laporan_terbuka INTEGER NOT NULL DEFAULT 0,
     dibuat TEXT NOT NULL DEFAULT (datetime('now')),
@@ -51,7 +52,8 @@ CREATE TABLE IF NOT EXISTS foto_bangunan (
     nama_berkas TEXT NOT NULL,
     nama_asli TEXT,
     ruang TEXT,
-    sumber TEXT NOT NULL DEFAULT 'pengguna' CHECK (sumber IN ('pengguna', 'analis')),
+    area TEXT NOT NULL DEFAULT 'lainnya',
+    sumber TEXT NOT NULL DEFAULT 'survei' CHECK (sumber IN ('survei', 'iklan', 'analis')),
     diunggah_oleh INTEGER REFERENCES pengguna(id),
     dibuat TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -119,6 +121,7 @@ CREATE TABLE IF NOT EXISTS harga_referensi (
     satuan TEXT NOT NULL DEFAULT 'm2',
     harga_material INTEGER NOT NULL,
     harga_upah INTEGER NOT NULL,
+    material TEXT NOT NULL DEFAULT '[]',
     aktif INTEGER NOT NULL DEFAULT 1,
     diperbarui TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -157,3 +160,4 @@ CREATE INDEX IF NOT EXISTS idx_properti_pengguna ON properti(pengguna_id);
 CREATE INDEX IF NOT EXISTS idx_pembayaran_pengguna ON pembayaran(pengguna_id);
 CREATE INDEX IF NOT EXISTS idx_inspeksi_status ON inspeksi(status);
 CREATE INDEX IF NOT EXISTS idx_log_dibuat ON log_analisis(dibuat);
+CREATE INDEX IF NOT EXISTS idx_foto_properti ON foto_bangunan(properti_id);

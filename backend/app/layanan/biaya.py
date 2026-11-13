@@ -1,7 +1,12 @@
+import json
+import math
+
 from flask import current_app
 
 from .. import db
-from .konstanta import ASUMSI_TRANSAKSI, JENIS_KERUSAKAN
+from .konstanta import ASUMSI_TRANSAKSI, JENIS_KERUSAKAN, PRIORITAS, URUTAN_PRIORITAS, tentukan_prioritas
+
+VERSI_RINCIAN = 2
 
 PEKERJAAN = {
     "retak_dinding": {
@@ -39,30 +44,62 @@ PEKERJAAN = {
 
 def _referensi():
     baris = db.banyak("SELECT * FROM harga_referensi WHERE aktif = 1")
+    for b in baris:
+        b["material"] = json.loads(b.get("material") or "[]")
     return {b["kode"]: b for b in baris}
+
+
+def _hitung_material(rincian, referensi):
+    gabungan = {}
+    for item in rincian:
+        for m in referensi[item["kode"]]["material"]:
+            kunci = (m["nama"], m["satuan"])
+            entri = gabungan.setdefault(kunci, {
+                "nama": m["nama"],
+                "satuan": m["satuan"],
+                "jumlah": 0.0,
+                "kemasan": m.get("kemasan") or m["satuan"],
+                "isi_kemasan": m.get("isi_kemasan") or 1,
+                "untuk": [],
+            })
+            entri["jumlah"] += m["koefisien"] * item["volume"]
+            if item["pekerjaan"] not in entri["untuk"]:
+                entri["untuk"].append(item["pekerjaan"])
+
+    hasil = []
+    for entri in gabungan.values():
+        entri["jumlah"] = round(entri["jumlah"], 2)
+        entri["jumlah_beli"] = max(1, math.ceil(entri["jumlah"] / entri["isi_kemasan"] - 1e-9))
+        hasil.append(entri)
+    hasil.sort(key=lambda e: e["nama"])
+    return hasil
 
 
 def hitung_renovasi(temuan):
     referensi = _referensi()
     indeks = current_app.config["INDEKS_HARGA_WILAYAH"]
+    tarif_kontingensi = ASUMSI_TRANSAKSI["tarif_kontingensi"]
     gabungan = {}
     catatan = []
 
     for t in temuan:
         if t.get("status") == "ditolak":
             continue
-        daftar = PEKERJAAN.get(t["jenis"], {}).get(t["tingkat"], [])
-        for kode, faktor in daftar:
+        prioritas = tentukan_prioritas(t["jenis"], t["tingkat"])
+        for kode, faktor in PEKERJAAN.get(t["jenis"], {}).get(t["tingkat"], []):
             ref = referensi.get(kode)
             if not ref:
-                catatan.append(f"Harga referensi '{kode}' tidak aktif sehingga tidak dihitung.")
+                pesan = f"Harga referensi '{kode}' tidak aktif sehingga tidak dihitung."
+                if pesan not in catatan:
+                    catatan.append(pesan)
                 continue
             volume = round(t["luas_m2"] * faktor, 2)
-            item = gabungan.setdefault(kode, {
+            item = gabungan.setdefault((kode, prioritas), {
                 "kode": kode,
                 "pekerjaan": ref["nama"],
                 "kategori": ref["kategori"],
                 "satuan": ref["satuan"],
+                "prioritas": prioritas,
                 "volume": 0.0,
                 "harga_satuan": round((ref["harga_material"] + ref["harga_upah"]) * indeks),
                 "material": 0,
@@ -80,13 +117,25 @@ def hitung_renovasi(temuan):
     for item in gabungan.values():
         item["jumlah"] = item["material"] + item["upah"]
         rincian.append(item)
-    rincian.sort(key=lambda i: i["jumlah"], reverse=True)
+    rincian.sort(key=lambda i: (URUTAN_PRIORITAS.index(i["prioritas"]), -i["jumlah"]))
+
+    per_prioritas = []
+    for kode in URUTAN_PRIORITAS:
+        anggota = [i for i in rincian if i["prioritas"] == kode]
+        per_prioritas.append({
+            "kode": kode,
+            **PRIORITAS[kode],
+            "jumlah_pekerjaan": len(anggota),
+            "jumlah": round(sum(i["jumlah"] for i in anggota) * (1 + tarif_kontingensi)),
+        })
 
     subtotal = sum(i["jumlah"] for i in rincian)
-    kontingensi = round(subtotal * ASUMSI_TRANSAKSI["tarif_kontingensi"])
+    kontingensi = round(subtotal * tarif_kontingensi)
     total = subtotal + kontingensi
     return {
         "rincian": rincian,
+        "material": _hitung_material(rincian, referensi),
+        "per_prioritas": per_prioritas,
         "subtotal": subtotal,
         "kontingensi": kontingensi,
         "total": total,
@@ -94,7 +143,7 @@ def hitung_renovasi(temuan):
         "rentang_maks": round(total * 1.2),
         "asumsi": {
             "indeks_harga_wilayah": indeks,
-            "tarif_kontingensi": ASUMSI_TRANSAKSI["tarif_kontingensi"],
+            "tarif_kontingensi": tarif_kontingensi,
             "catatan": catatan,
         },
     }
@@ -103,7 +152,13 @@ def hitung_renovasi(temuan):
 def simpan_estimasi(properti_id, hasil):
     db.simpan_atau_ganti("estimasi_biaya", {
         "properti_id": properti_id,
-        "rincian": {"item": hasil["rincian"], "asumsi": hasil["asumsi"]},
+        "rincian": {
+            "versi": VERSI_RINCIAN,
+            "item": hasil["rincian"],
+            "material": hasil["material"],
+            "per_prioritas": hasil["per_prioritas"],
+            "asumsi": hasil["asumsi"],
+        },
         "subtotal": hasil["subtotal"],
         "kontingensi": hasil["kontingensi"],
         "total": hasil["total"],

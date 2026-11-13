@@ -57,7 +57,7 @@ function DaftarMenu({ menu, jalur }) {
   );
 }
 
-export function CangkangAplikasi({ peran, children }) {
+export function CangkangAplikasi({ peran, polos, children }) {
   const { pengguna, memuat, keluar } = useAuth();
   const { jalur, navigasi } = useRouter();
   const [laci, setLaci] = useState(false);
@@ -73,6 +73,8 @@ export function CangkangAplikasi({ peran, children }) {
   }
   if (!pengguna) return <Alihkan ke={`/masuk?kembali=${encodeURIComponent(jalur)}`} />;
   if (!peran.includes(pengguna.peran)) return <Alihkan ke={BERANDA_PERAN[pengguna.peran]} />;
+
+  if (polos) return <div className="aplikasi-polos">{children}</div>;
 
   const menu = MENU_PERAN[pengguna.peran];
   const saatKeluar = () => {
@@ -94,11 +96,13 @@ export function CangkangAplikasi({ peran, children }) {
       )}
       <DaftarMenu menu={menu} jalur={jalur} />
       <div className="sisi__profil">
-        <Avatar nama={pengguna.nama} />
-        <div className="sisi__identitas">
-          <strong>{pengguna.nama}</strong>
-          <span>{LABEL_PERAN[pengguna.peran]}</span>
-        </div>
+        <Tautan ke="/profil" className="sisi__identitas-tautan" aria-label="Profil dan keamanan akun">
+          <Avatar nama={pengguna.nama} />
+          <div className="sisi__identitas">
+            <strong>{pengguna.nama}</strong>
+            <span>{LABEL_PERAN[pengguna.peran]}</span>
+          </div>
+        </Tautan>
         <button type="button" className="sisi__keluar" onClick={saatKeluar} aria-label="Keluar">
           <LuLogOut />
         </button>
@@ -117,7 +121,9 @@ export function CangkangAplikasi({ peran, children }) {
         <Tautan ke={BERANDA_PERAN[pengguna.peran]} aria-label="Dasbor HomeWise">
           <Logo kecil />
         </Tautan>
-        <Avatar nama={pengguna.nama} />
+        <Tautan ke="/profil" aria-label="Profil">
+          <Avatar nama={pengguna.nama} />
+        </Tautan>
       </header>
 
       {laci && (

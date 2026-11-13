@@ -2,7 +2,9 @@ import { useState } from "react";
 import {
   LuBookmark,
   LuBookmarkCheck,
+  LuArrowRight,
   LuBuilding2,
+  LuCamera,
   LuExternalLink,
   LuFileText,
   LuLock,
@@ -20,6 +22,7 @@ import { useAksi, useData, useJudul } from "../../../lib/hooks";
 import { labelTujuan, useKonfigurasi } from "../../../lib/konfigurasi";
 import { useNotifikasi } from "../../../lib/notifikasi";
 import { useRouter } from "../../../lib/router";
+import { TahapProperti } from "../../../komponen/Survei";
 import { PanelTerkunci } from "./PanelTerkunci";
 import { TabBangunan } from "./TabBangunan";
 import { TabBiaya } from "./TabBiaya";
@@ -79,12 +82,46 @@ function RingkasanAtas({ detail, onUbahTujuan, mengubah }) {
   );
 }
 
+function LangkahBerikutnya({ detail, milikSendiri, keTab }) {
+  const { tahap, akses_premium: premium, properti } = detail;
+  const aksi = {
+    kandidat: milikSendiri && { label: "Mulai mode survei", ikon: LuCamera, ke: `/app/properti/${properti.id}/survei` },
+    disurvei: { label: premium ? "Analisis foto survei" : "Buka analisis bangunan", ikon: LuArrowRight, tab: "bangunan" },
+    dianalisis: { label: "Lihat biaya & material", ikon: LuArrowRight, tab: "biaya" },
+    tervalidasi: { label: "Lihat laporan", ikon: LuArrowRight, tab: "laporan" },
+  }[tahap.kode];
+
+  return (
+    <Kartu className="langkah-berikutnya" rapat>
+      <TahapProperti tahap={tahap} />
+      <div className="langkah-berikutnya__isi">
+        <div>
+          <span className="teks-mini teks-redup">Langkah berikutnya</span>
+          <p className="tebal">{tahap.langkah}</p>
+        </div>
+        {aksi &&
+          (aksi.ke ? (
+            <Tombol ke={aksi.ke} ikon={aksi.ikon}>
+              {aksi.label}
+            </Tombol>
+          ) : (
+            <Tombol varian="sekunder" ikonKanan={aksi.ikon} onClick={() => keTab(aksi.tab)}>
+              {aksi.label}
+            </Tombol>
+          ))}
+      </div>
+    </Kartu>
+  );
+}
+
+const KODE_TAB = ["lokasi", "bangunan", "biaya", "laporan"];
+
 export default function DetailProperti({ id }) {
   const { pengguna } = useAuth();
-  const { navigasi } = useRouter();
+  const { navigasi, query } = useRouter();
   const beriTahu = useNotifikasi();
   const konfigurasi = useKonfigurasi();
-  const [tab, setTab] = useState("lokasi");
+  const [tab, setTab] = useState(() => (KODE_TAB.includes(query.get("tab")) ? query.get("tab") : "lokasi"));
   const [konfirmasiHapus, setKonfirmasiHapus] = useState(false);
   const [proses, jalankan] = useAksi();
   const { data: detail, setData: setDetail, galat, memuat, muatUlang } = useData(() => api.get(`/properti/${id}`), [id]);
@@ -125,8 +162,8 @@ export default function DetailProperti({ id }) {
 
   const kontenTab = () => {
     if (tab === "lokasi") return <TabLokasi detail={detail} />;
+    if (tab === "bangunan") return <TabBangunan detail={detail} setDetail={setDetail} muatUlang={segarkan} />;
     if (!premium) return <PanelTerkunci properti={properti} onTerbuka={segarkan} />;
-    if (tab === "bangunan") return <TabBangunan detail={detail} setDetail={setDetail} />;
     if (tab === "biaya")
       return (
         <TabBiaya
@@ -158,9 +195,7 @@ export default function DetailProperti({ id }) {
               <Tombol varian="sekunder" ikon={properti.tersimpan ? LuBookmarkCheck : LuBookmark} onClick={simpan} disabled={proses}>
                 {properti.tersimpan ? "Tersimpan" : "Simpan"}
               </Tombol>
-              <Tombol varian="sekunder" ikon={LuRefreshCw} onClick={analisisUlang} disabled={proses}>
-                Perbarui lokasi
-              </Tombol>
+              <Tombol varian="sekunder" ikon={LuRefreshCw} onClick={analisisUlang} disabled={proses} aria-label="Perbarui analisis lokasi" title="Perbarui analisis lokasi" />
               {premium && <TombolUnduhLaporan properti={properti} />}
               <Tombol varian="bahaya" ikon={LuTrash2} onClick={() => setKonfirmasiHapus(true)} aria-label="Hapus properti" />
             </>
@@ -174,11 +209,7 @@ export default function DetailProperti({ id }) {
         {properti.luas_tanah && <Lencana nada="netral">LT {properti.luas_tanah} m²</Lencana>}
         {properti.tahun_bangun && <Lencana nada="netral">Dibangun {properti.tahun_bangun}</Lencana>}
         <Lencana nada={premium ? "sukses" : undefined}>{premium ? "Laporan lengkap" : "Ringkasan gratis"}</Lencana>
-        {detail.lokasi?.sumber === "simulasi" ? (
-          <Lencana nada="peringatan">Data AI mode demo</Lencana>
-        ) : detail.lokasi?.sumber ? (
-          <Lencana nada="sukses">Data geospasial asli</Lencana>
-        ) : null}
+        {detail.lokasi?.sumber === "simulasi" && <Lencana nada="peringatan">Data AI mode demo</Lencana>}
         {properti.sumber_iklan && (
           <a href={properti.sumber_iklan} target="_blank" rel="noreferrer" className="lencana">
             <LuExternalLink aria-hidden="true" /> Lihat iklan
@@ -187,9 +218,18 @@ export default function DetailProperti({ id }) {
         <span className="teks-mini teks-redup">Ditambahkan {tanggal(properti.dibuat)}</span>
       </div>
 
+      <LangkahBerikutnya
+        detail={detail}
+        milikSendiri={milikSendiri}
+        keTab={(kode) => {
+          setTab(kode);
+          document.getElementById("panel-analisis")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
+
       <RingkasanAtas detail={detail} onUbahTujuan={ubahTujuan} mengubah={proses} />
 
-      <div style={{ marginBlock: "24px 20px" }}>
+      <div id="panel-analisis" style={{ marginBlock: "24px 20px", scrollMarginTop: 80 }}>
         <Tab label="Bagian analisis" daftar={TAB} aktif={tab} onUbah={setTab} />
       </div>
       <div role="tabpanel">{kontenTab()}</div>

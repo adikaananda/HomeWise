@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ .
 COPY --from=frontend /frontend/dist /app/frontend/dist
 EXPOSE 5000
-CMD ["gunicorn", "-w", "2", "--preload", "-b", "0.0.0.0:5000", "--timeout", "120", "run:app"]
+CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "--timeout", "120", "run:app"]

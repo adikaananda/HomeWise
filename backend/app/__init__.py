@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from flask import Flask, request, send_from_directory
@@ -13,6 +14,8 @@ def buat_aplikasi(konfigurasi_tambahan=None):
     app.config.from_object(Konfigurasi)
     if konfigurasi_tambahan:
         app.config.update(konfigurasi_tambahan)
+    _periksa_konfigurasi(app)
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
     db.inisialisasi_db(app)
     app.teardown_appcontext(db.tutup_koneksi)
@@ -32,6 +35,17 @@ def buat_aplikasi(konfigurasi_tambahan=None):
     return app
 
 
+KUNCI_BAWAAN = "ganti-dengan-kunci-rahasia-panjang"
+
+
+def _periksa_konfigurasi(app):
+    if app.config["LINGKUNGAN"] != "produksi":
+        return
+    kunci = app.config["SECRET_KEY"]
+    if kunci == KUNCI_BAWAAN or kunci.startswith("ganti-") or len(kunci) < 32:
+        raise RuntimeError("SECRET_KEY wajib diisi string acak minimal 32 karakter saat LINGKUNGAN=produksi.")
+
+
 def _pasang_cors(app):
     @app.after_request
     def tambah_header(respon):
@@ -41,6 +55,12 @@ def _pasang_cors(app):
             respon.headers["Vary"] = "Origin"
             respon.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
             respon.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        respon.headers.setdefault("X-Content-Type-Options", "nosniff")
+        respon.headers.setdefault("X-Frame-Options", "DENY")
+        respon.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        respon.headers.setdefault("Permissions-Policy", "camera=(self), geolocation=(self), microphone=()")
+        if app.config["LINGKUNGAN"] == "produksi":
+            respon.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         return respon
 
     @app.before_request

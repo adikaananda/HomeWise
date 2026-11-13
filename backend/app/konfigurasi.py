@@ -27,6 +27,7 @@ _muat_env()
 
 
 class Konfigurasi:
+    LINGKUNGAN = os.getenv("LINGKUNGAN", "pengembangan")
     SECRET_KEY = os.getenv("SECRET_KEY", "ganti-dengan-kunci-rahasia-panjang")
     JWT_KEDALUWARSA_JAM = int(os.getenv("JWT_KEDALUWARSA_JAM", "72"))
 

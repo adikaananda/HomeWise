@@ -184,13 +184,13 @@ const FITUR = [
   {
     ikon: LuCamera,
     judul: "Analisis kondisi bangunan",
-    teks: "Unggah foto, AI menandai retak, cat mengelupas, noda lembap, dan kerusakan plafon beserta tingkat keyakinannya.",
+    teks: "Saat survei, mode survei memandu Anda memotret area yang sering rusak. AI menandai retak, rembesan, plafon rusak, dan atap bocor.",
     ilustrasi: IlustrasiPemindai,
   },
   {
     ikon: LuFileText,
-    judul: "Estimasi renovasi & investasi",
-    teks: "Rincian pekerjaan, volume, dan harga satuan yang bisa ditelusuri, digabung harga penawaran dan biaya transaksi.",
+    judul: "Biaya, material & prioritas",
+    teks: "Rincian pekerjaan, daftar belanja material, dan mana yang mendesak atau bisa ditunda, digabung harga penawaran dan biaya transaksi.",
     ilustrasi: IlustrasiBiaya,
     besar: true,
   },
@@ -262,10 +262,10 @@ function AnalisisTujuan() {
 }
 
 const LANGKAH = [
-  { judul: "Masukkan properti", teks: "Tempel alamat, koordinat, atau pilih titik di peta dari iklan yang Anda temukan." },
-  { judul: "Baca kelayakan lokasi", teks: "Skor sesuai tujuan, faktor pendukung, risiko, dan hal yang perlu diverifikasi." },
-  { judul: "Periksa bangunan", teks: "Unggah foto untuk deteksi kerusakan dan dapatkan estimasi biaya renovasi." },
-  { judul: "Putuskan dengan laporan", teks: "Bandingkan kandidat, unduh PDF, atau pesan inspeksi profesional untuk validasi." },
+  { judul: "Cek lokasi dari rumah", teks: "Tempel alamat dari iklan. Risiko bencana, fasilitas, dan skor kelayakan keluar gratis untuk menyaring kandidat." },
+  { judul: "Survei dengan panduan foto", teks: "Datang ke properti dan buka mode survei di HP. Anda yang memotret, jadi kerusakan tidak disembunyikan." },
+  { judul: "Lihat kerusakan & biaya", teks: "AI menandai kerusakan, lalu HomeWise menghitung prioritas perbaikan, material, dan total investasi." },
+  { judul: "Tawar dengan data", teks: "Bawa laporan PDF ke negosiasi, bandingkan kandidat, atau pesan analis untuk validasi di lokasi." },
 ];
 
 function CaraKerja() {
@@ -273,7 +273,7 @@ function CaraKerja() {
     <section className="bagian" id="cara-kerja">
       <div className="wadah">
         <div className="bagian__kepala">
-          <h2>Dari iklan di media sosial ke keputusan yang bisa dipertanggungjawabkan</h2>
+          <h2>Dari iklan di media sosial ke harga yang pantas ditawar</h2>
         </div>
         <ol className="alur">
           {LANGKAH.map((l, i) => (
@@ -346,8 +346,8 @@ const ISI_LAPORAN = [
   "Skor kelayakan lokasi sesuai tujuan dan alasannya",
   "Peta risiko banjir, longsor, gempa, serta topografi",
   "Fasilitas terdekat dengan jarak tempuh",
-  "Temuan kerusakan visual per foto",
-  "Rincian estimasi renovasi dan total investasi awal",
+  "Temuan kerusakan per area beserta prioritas perbaikan",
+  "Rincian renovasi, daftar belanja material, dan total investasi",
   "Daftar pemeriksaan lanjutan sebelum negosiasi",
 ];
 

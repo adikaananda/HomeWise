@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { LuBadgeCheck, LuCalendar, LuClipboardCheck, LuMapPin, LuPhone, LuPlus, LuSave, LuTrash2 } from "react-icons/lu";
+import { LuBadgeCheck, LuCalendar, LuClipboardCheck, LuImagePlus, LuMapPin, LuPhone, LuPlus, LuSave, LuTrash2 } from "react-icons/lu";
 import { Peta } from "../../komponen/Peta";
 import { FotoBertanda, TabelTemuan } from "../../komponen/Temuan";
 import { KepalaHalaman } from "../../komponen/tata-letak/Aplikasi";
@@ -11,7 +11,7 @@ import { useAksi, useData, useJudul } from "../../lib/hooks";
 import { labelTujuan, useKonfigurasi } from "../../lib/konfigurasi";
 import { useNotifikasi } from "../../lib/notifikasi";
 import { Tautan } from "../../lib/router";
-import { UnggahFoto } from "../pencari/detail/TabBangunan";
+import { ModalUnggahFoto } from "../../komponen/Survei";
 
 export const STATUS_INSPEKSI = {
   menunggu: { teks: "Menunggu", nada: "peringatan" },
@@ -240,6 +240,7 @@ export function DetailInspeksi({ id }) {
   const [proses, jalankan] = useAksi();
   const { data: inspeksi, setData: setInspeksi, galat, memuat, muatUlang } = useData(() => api.get(`/inspeksi/${id}`), [id]);
   const [kunci, setKunci] = useState(0);
+  const [modalFoto, setModalFoto] = useState(false);
   useJudul(inspeksi ? `Inspeksi ${inspeksi.properti_nama}` : "Detail inspeksi");
 
   useEffect(() => setKunci((k) => k + 1), [inspeksi?.status, inspeksi?.analisis?.bangunan?.dibuat]);
@@ -309,8 +310,17 @@ export function DetailInspeksi({ id }) {
           )}
 
           {dapatUbah && (
-            <Kartu judul="Foto tambahan dari lapangan">
-              <UnggahFoto endpoint={`/inspeksi/${id}/foto`} onSelesai={setInspeksi} />
+            <Kartu
+              judul="Foto tambahan dari lapangan"
+              sub="Foto analis ditandai sebagai sumber terverifikasi di laporan pengguna."
+              aksi={
+                <Tombol varian="sekunder" ikon={LuImagePlus} onClick={() => setModalFoto(true)}>
+                  Unggah foto
+                </Tombol>
+              }
+            >
+              <p className="teks-kecil teks-redup">{analisis.foto.filter((f) => f.sumber === "analis").length} foto analis tersimpan.</p>
+              <ModalUnggahFoto terbuka={modalFoto} onTutup={() => setModalFoto(false)} endpoint={`/inspeksi/${id}/foto`} onSelesai={setInspeksi} sumberTetap="analis" />
             </Kartu>
           )}
         </div>

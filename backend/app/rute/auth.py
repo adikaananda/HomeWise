@@ -1,14 +1,15 @@
 from flask import Blueprint
 
 from .. import db
-from ..keamanan import buat_token, cocokkan_sandi, hash_sandi, pengguna_aktif, profil_publik, wajib_login
+from ..keamanan import batasi_laju, buat_token, cocokkan_sandi, hash_sandi, pengguna_aktif, profil_publik, wajib_login
 from ..respon import GalatAplikasi, sukses
-from ..validasi import SkemaDaftar, SkemaMasuk, SkemaProfil, baca_json
+from ..validasi import SkemaDaftar, SkemaGantiSandi, SkemaMasuk, SkemaProfil, baca_json
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
 @bp.post("/daftar")
+@batasi_laju(5)
 def daftar():
     data = baca_json(SkemaDaftar)
     if db.satu("SELECT id FROM pengguna WHERE email = ?", (data.email,)):
@@ -25,6 +26,7 @@ def daftar():
 
 
 @bp.post("/masuk")
+@batasi_laju(10)
 def masuk():
     data = baca_json(SkemaMasuk)
     pengguna = db.satu("SELECT * FROM pengguna WHERE email = ?", (data.email,))
@@ -47,3 +49,15 @@ def ubah_profil():
     data = baca_json(SkemaProfil).model_dump(exclude_none=True)
     db.perbarui("pengguna", pengguna_aktif()["id"], data)
     return sukses(profil_publik(db.satu("SELECT * FROM pengguna WHERE id = ?", (pengguna_aktif()["id"],))))
+
+
+@bp.post("/ganti-sandi")
+@wajib_login()
+@batasi_laju(5)
+def ganti_sandi():
+    data = baca_json(SkemaGantiSandi)
+    pengguna = pengguna_aktif()
+    if not cocokkan_sandi(pengguna["sandi_hash"], data.sandi_lama):
+        raise GalatAplikasi("Kata sandi lama tidak sesuai.", 400, {"sandi_lama": "Kata sandi lama tidak sesuai."})
+    db.perbarui("pengguna", pengguna["id"], {"sandi_hash": hash_sandi(data.sandi_baru)})
+    return sukses(pesan="Kata sandi berhasil diubah.")

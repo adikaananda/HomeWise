@@ -209,11 +209,7 @@ export function AdminAnalisis() {
                       <td className="teks-redup">{tanggal(l.dibuat, true)}</td>
                       <td style={{ textTransform: "capitalize" }}>{l.jenis}</td>
                       <td>{l.properti_nama || "Cek cepat publik"}</td>
-                      <td>
-                        <Lencana nada={l.sumber === "simulasi" ? "peringatan" : "sukses"}>
-                          {l.sumber === "asli" ? "Data Asli" : l.sumber === "remote" ? "Model AI" : "Simulasi"}
-                        </Lencana>
-                      </td>
+                      <td><Lencana nada={l.sumber === "remote" ? "sukses" : "peringatan"}>{l.sumber === "remote" ? "Model AI" : "Simulasi"}</Lencana></td>
                       <td className="kanan">{angka(l.durasi_ms)} ms</td>
                       <td>
                         <Lencana nada={l.status === "berhasil" ? "sukses" : "bahaya"}>{kapital(l.status)}</Lencana>
@@ -231,7 +227,32 @@ export function AdminAnalisis() {
   );
 }
 
-const HARGA_KOSONG = { kode: "", nama: "", kategori: "", satuan: "m2", harga_material: "", harga_upah: "", aktif: true };
+const HARGA_KOSONG = { kode: "", nama: "", kategori: "", satuan: "m2", harga_material: "", harga_upah: "", material: [], aktif: true };
+const MATERIAL_KOSONG = { nama: "", satuan: "kg", koefisien: "", kemasan: "", isi_kemasan: "" };
+
+function EditorMaterial({ daftar, onUbah, galat }) {
+  const ubah = (i, kunci, nilai) => onUbah(daftar.map((m, j) => (j === i ? { ...m, [kunci]: nilai } : m)));
+  return (
+    <fieldset className="editor-material">
+      <legend className="isian__label">Kebutuhan material per satuan pekerjaan</legend>
+      <p className="isian__bantuan">Koefisien mengikuti AHSP. Isi kemasan dipakai untuk membulatkan jumlah beli, misal semen 40 kg per sak.</p>
+      {daftar.map((m, i) => (
+        <div key={i} className="editor-material__baris">
+          <Isian label="Material" value={m.nama} onChange={(e) => ubah(i, "nama", e.target.value)} />
+          <Isian label="Satuan" value={m.satuan} onChange={(e) => ubah(i, "satuan", e.target.value)} />
+          <Isian label="Koefisien" inputMode="decimal" value={m.koefisien} onChange={(e) => ubah(i, "koefisien", e.target.value)} />
+          <Isian label="Kemasan" value={m.kemasan || ""} onChange={(e) => ubah(i, "kemasan", e.target.value)} />
+          <Isian label="Isi kemasan" inputMode="decimal" value={m.isi_kemasan || ""} onChange={(e) => ubah(i, "isi_kemasan", e.target.value)} />
+          <Tombol varian="hantu" ikon={LuTrash2} aria-label="Hapus material" onClick={() => onUbah(daftar.filter((_, j) => j !== i))} />
+        </div>
+      ))}
+      {galat && <p className="isian__galat">Periksa kembali data material: nama, satuan, dan koefisien wajib diisi.</p>}
+      <Tombol varian="sekunder" ukuran="kecil" ikon={LuPlus} onClick={() => onUbah([...daftar, { ...MATERIAL_KOSONG }])}>
+        Tambah material
+      </Tombol>
+    </fieldset>
+  );
+}
 
 export function AdminHarga() {
   useJudul("Harga referensi");
@@ -244,7 +265,19 @@ export function AdminHarga() {
   const simpan = () =>
     jalankan(async () => {
       setGalat({});
-      const isi = { ...form, harga_material: Number(form.harga_material) || 0, harga_upah: Number(form.harga_upah) || 0 };
+      const angkaDesimal = (v) => Number(String(v).replace(",", ".")) || null;
+      const isi = {
+        ...form,
+        harga_material: Number(form.harga_material) || 0,
+        harga_upah: Number(form.harga_upah) || 0,
+        material: (form.material || []).map((m) => ({
+          nama: m.nama.trim(),
+          satuan: m.satuan.trim(),
+          koefisien: angkaDesimal(m.koefisien),
+          kemasan: m.kemasan?.trim() || null,
+          isi_kemasan: angkaDesimal(m.isi_kemasan),
+        })),
+      };
       try {
         if (form.id) {
           const { kode, id, diperbarui, ...perubahan } = isi;
@@ -291,7 +324,7 @@ export function AdminHarga() {
               <tbody>
                 {daftar.map((h) => (
                   <tr key={h.id}>
-                    <td><strong>{h.nama}</strong><div className="teks-mini teks-redup angka">{h.kode}</div></td>
+                    <td><strong>{h.nama}</strong><div className="teks-mini teks-redup angka">{h.kode}, {(h.material || []).length} material</div></td>
                     <td>{h.kategori}</td>
                     <td className="kanan">{rupiah(h.harga_material)}</td>
                     <td className="kanan">{rupiah(h.harga_upah)}</td>
@@ -314,6 +347,7 @@ export function AdminHarga() {
         terbuka={Boolean(form)}
         onTutup={() => setForm(null)}
         judul={form?.id ? "Ubah harga referensi" : "Tambah pekerjaan"}
+        lebar
         aksi={<><Tombol varian="hantu" onClick={() => setForm(null)}>Batal</Tombol><Tombol onClick={simpan} memuat={proses}>Simpan harga</Tombol></>}
       >
         {form && (
@@ -326,6 +360,7 @@ export function AdminHarga() {
               <Isian label="Harga material" awalan="Rp" inputMode="numeric" value={form.harga_material} onChange={ubah("harga_material")} galat={galat.harga_material} />
               <Isian label="Harga upah" awalan="Rp" inputMode="numeric" value={form.harga_upah} onChange={ubah("harga_upah")} galat={galat.harga_upah} />
             </div>
+            <EditorMaterial daftar={form.material || []} onUbah={(material) => setForm({ ...form, material })} galat={Object.keys(galat).some((k) => k.startsWith("material"))} />
             <Pilihan label="Status" value={form.aktif ? "1" : "0"} onChange={(e) => setForm({ ...form, aktif: e.target.value === "1" })} opsi={[{ nilai: "1", label: "Aktif" }, { nilai: "0", label: "Nonaktif" }]} />
           </div>
         )}

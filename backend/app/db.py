@@ -8,9 +8,10 @@ from flask import current_app, g
 
 def ambil_koneksi():
     if "db" not in g:
-        g.db = sqlite3.connect(current_app.config["DATABASE_PATH"])
+        g.db = sqlite3.connect(current_app.config["DATABASE_PATH"], timeout=15)
         g.db.row_factory = sqlite3.Row
         g.db.execute("PRAGMA foreign_keys = ON")
+        g.db.execute("PRAGMA busy_timeout = 15000")
     return g.db
 
 
@@ -91,9 +92,8 @@ def _serial(v):
 
 
 def inisialisasi_db(app):
+    from . import migrasi
+
     Path(app.config["DATABASE_PATH"]).parent.mkdir(parents=True, exist_ok=True)
     Path(app.config["DIR_UNGGAHAN"]).mkdir(parents=True, exist_ok=True)
-    skema = (Path(__file__).parent / "skema.sql").read_text(encoding="utf-8")
-    koneksi = sqlite3.connect(app.config["DATABASE_PATH"])
-    koneksi.executescript(skema)
-    koneksi.close()
+    migrasi.jalankan(app.config["DATABASE_PATH"])

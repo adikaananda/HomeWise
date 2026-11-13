@@ -100,13 +100,16 @@ def ubah(inspeksi_id):
 def unggah_foto(inspeksi_id):
     inspeksi = _ambil(inspeksi_id)
     _wajib_penanggung_jawab(inspeksi)
+    daftar_foto = berkas.ambil_daftar_foto(request)
+    layanan_properti.periksa_kuota_foto(inspeksi["properti_id"], len(daftar_foto))
     ruang = request.form.get("ruang", "").strip()[:60] or None
-    for foto in berkas.ambil_daftar_foto(request):
+    for foto in daftar_foto:
         db.simpan("foto_bangunan", {
             "properti_id": inspeksi["properti_id"],
             "nama_berkas": berkas.simpan_foto(foto),
             "nama_asli": foto.filename[:120],
             "ruang": ruang,
+            "area": berkas.baca_area(request.form.get("area")),
             "sumber": "analis",
             "diunggah_oleh": pengguna_aktif()["id"],
         })

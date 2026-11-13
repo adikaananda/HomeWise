@@ -2,9 +2,11 @@ import { CangkangAplikasi } from "./komponen/tata-letak/Aplikasi";
 import { AdminAnalisis, AdminHarga, AdminLaporan, AdminPengguna, AdminRingkasan, AdminSumberData } from "./halaman/admin/Admin";
 import { DaftarInspeksi, DetailInspeksi } from "./halaman/analis/Inspeksi";
 import Bandingkan from "./halaman/pencari/Bandingkan";
+import Profil from "./halaman/Profil";
 import Dasbor from "./halaman/pencari/Dasbor";
 import DetailProperti from "./halaman/pencari/detail/DetailProperti";
 import { RiwayatPembayaran, StatusPembayaran } from "./halaman/pencari/Pembayaran";
+import ModeSurvei from "./halaman/pencari/ModeSurvei";
 import PropertiBaru from "./halaman/pencari/PropertiBaru";
 import PropertiSaya from "./halaman/pencari/PropertiSaya";
 import { Daftar, Masuk } from "./halaman/publik/Autentikasi";
@@ -15,6 +17,7 @@ import { cocokkan, useRouter } from "./lib/router";
 const PENCARI = ["pencari", "admin"];
 const ANALIS = ["analis", "admin"];
 const ADMIN = ["admin"];
+const SEMUA = ["pencari", "analis", "admin"];
 
 const RUTE = [
   { pola: "/", halaman: Beranda },
@@ -26,6 +29,7 @@ const RUTE = [
   { pola: "/app/properti", halaman: PropertiSaya, peran: PENCARI },
   { pola: "/app/properti/baru", halaman: PropertiBaru, peran: PENCARI },
   { pola: "/app/properti/:id", halaman: DetailProperti, peran: [...PENCARI, "analis"] },
+  { pola: "/app/properti/:id/survei", halaman: ModeSurvei, peran: PENCARI, polos: true },
   { pola: "/app/bandingkan", halaman: Bandingkan, peran: PENCARI },
   { pola: "/app/pembayaran", halaman: RiwayatPembayaran, peran: PENCARI },
   { pola: "/app/pembayaran/:orderId", halaman: StatusPembayaran, peran: PENCARI },
@@ -39,6 +43,8 @@ const RUTE = [
   { pola: "/admin/harga", halaman: AdminHarga, peran: ADMIN },
   { pola: "/admin/sumber-data", halaman: AdminSumberData, peran: ADMIN },
   { pola: "/admin/laporan", halaman: AdminLaporan, peran: ADMIN },
+
+  { pola: "/profil", halaman: Profil, peran: SEMUA },
 ];
 
 export default function App() {
@@ -50,7 +56,7 @@ export default function App() {
     const Halaman = rute.halaman;
     if (!rute.peran) return <Halaman {...parameter} />;
     return (
-      <CangkangAplikasi peran={rute.peran}>
+      <CangkangAplikasi peran={rute.peran} polos={rute.polos}>
         <Halaman key={jalur} {...parameter} />
       </CangkangAplikasi>
     );

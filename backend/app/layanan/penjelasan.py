@@ -1,4 +1,4 @@
-from .konstanta import INDIKATOR, JENIS_KERUSAKAN, TUJUAN
+from .konstanta import INDIKATOR, JENIS_KERUSAKAN, TUJUAN, tentukan_prioritas
 
 
 def _rupiah(n):
@@ -26,7 +26,10 @@ def ringkasan_bangunan(temuan, skor_kondisi):
     berat = [t for t in aktif if t["tingkat"] == "berat"]
     jenis = sorted({JENIS_KERUSAKAN[t["jenis"]].lower() for t in aktif})
     teks = f"Skor kondisi visual {skor_kondisi:.0f}/100 dengan {len(aktif)} indikasi kerusakan: {', '.join(jenis)}."
-    if berat:
+    mendesak = [t for t in aktif if tentukan_prioritas(t["jenis"], t["tingkat"]) == "mendesak"]
+    if mendesak:
+        teks += f" Ada {len(mendesak)} temuan yang perlu diperbaiki sebelum bangunan ditempati."
+    elif berat:
         teks += f" Terdapat {len(berat)} temuan tingkat berat yang sebaiknya diperiksa ahli bangunan sebelum negosiasi harga."
     else:
         teks += " Sebagian besar temuan bersifat kosmetik dan dapat ditangani dengan renovasi ringan hingga sedang."
@@ -44,18 +47,38 @@ def ringkasan_investasi(investasi):
     return teks
 
 
-def rekomendasi(hasil_lokasi, temuan, punya_inspeksi):
+def rekomendasi(hasil_lokasi, temuan, punya_inspeksi, survei=None, kelengkapan=None, ada_foto_iklan=False):
     daftar = []
+    jawaban = (survei or {}).get("jawaban", {})
     risiko = hasil_lokasi["data"]["risiko"] if hasil_lokasi else {}
-    if risiko.get("banjir", {}).get("level") in ("sedang", "tinggi"):
+    aktif = [t for t in temuan if t.get("status") != "ditolak"]
+
+    if jawaban.get("riwayat_banjir", "").startswith("Pernah"):
+        daftar.append("Warga atau penjual menyebut lokasi pernah banjir. Tanyakan ketinggian air, minta penyesuaian harga, dan anggarkan peninggian lantai atau pompa.")
+    elif risiko.get("banjir", {}).get("level") in ("sedang", "tinggi"):
         daftar.append("Tanyakan riwayat banjir kepada warga sekitar dan periksa bekas genangan pada dinding bawah.")
     if risiko.get("longsor", {}).get("level") in ("sedang", "tinggi"):
         daftar.append("Periksa kontur tanah, dinding penahan, dan saluran air di sekitar bangunan.")
-    if any(t["jenis"] == "retak_dinding" and t["tingkat"] != "ringan" for t in temuan):
+    if any(t["jenis"] == "retak_dinding" and t["tingkat"] != "ringan" for t in aktif):
         daftar.append("Minta ahli struktur memeriksa retakan untuk memastikan tidak berkaitan dengan pondasi.")
-    if any(t["jenis"] in ("noda_lembap", "atap_bocor") for t in temuan):
+    if any(t["jenis"] in ("noda_lembap", "atap_bocor") for t in aktif):
         daftar.append("Cek sumber kebocoran saat atau setelah hujan, termasuk talang dan sambungan atap.")
-    daftar.append("Pastikan legalitas: sertifikat, IMB/PBG, dan kesesuaian zonasi dengan tujuan penggunaan.")
+    if kelengkapan and kelengkapan["belum"]:
+        daftar.append("Foto belum mencakup: " + ", ".join(a.lower() for a in kelengkapan["belum"]) + ". Kerusakan di area itu belum terhitung.")
+    if ada_foto_iklan:
+        daftar.append("Sebagian foto berasal dari iklan atau penjual. Pastikan kondisinya saat survei, karena foto iklan jarang menampilkan kerusakan.")
+
+    sertifikat = jawaban.get("sertifikat")
+    if sertifikat == "AJB / girik":
+        daftar.append("Sertifikat masih AJB atau girik. Anggarkan biaya dan waktu peningkatan ke SHM sebelum transaksi.")
+    elif sertifikat == "SHGB":
+        daftar.append("Status SHGB punya masa berlaku. Cek sisa waktunya dan biaya perpanjangan atau peningkatan ke SHM.")
+    else:
+        daftar.append("Cek sertifikat di kantor BPN dan pastikan nama pemilik sesuai KTP penjual.")
+    if jawaban.get("izin_bangunan") in ("Tidak ada", "Belum tahu"):
+        daftar.append("Minta dokumen IMB/PBG. Tanpa dokumen ini, renovasi besar dan pengajuan KPR bisa terhambat.")
+    if jawaban.get("daya_listrik") == "900 VA":
+        daftar.append("Daya listrik 900 VA biasanya perlu dinaikkan. Anggarkan biaya tambah daya ke PLN.")
     if not punya_inspeksi:
         daftar.append("Pertimbangkan inspeksi profesional untuk memvalidasi temuan sebelum menawar harga.")
     return daftar

@@ -1,3 +1,6 @@
+import threading
+import time
+from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
@@ -69,3 +72,33 @@ def wajib_login(*peran_diizinkan):
 
 def profil_publik(pengguna):
     return {k: pengguna[k] for k in ("id", "nama", "email", "peran", "telepon", "perusahaan", "kredit_laporan", "dibuat")}
+
+
+_jejak_permintaan = defaultdict(deque)
+_kunci_jejak = threading.Lock()
+
+
+def _alamat_klien():
+    terusan = request.headers.get("X-Forwarded-For", "")
+    return terusan.split(",")[0].strip() or request.remote_addr or "-"
+
+
+def batasi_laju(maks, jendela_detik=60):
+    def dekorator(fungsi):
+        @wraps(fungsi)
+        def pembungkus(*args, **kwargs):
+            if not current_app.config.get("TESTING"):
+                kunci = f"{fungsi.__name__}:{_alamat_klien()}"
+                kini = time.monotonic()
+                with _kunci_jejak:
+                    antrean = _jejak_permintaan[kunci]
+                    while antrean and kini - antrean[0] > jendela_detik:
+                        antrean.popleft()
+                    if len(antrean) >= maks:
+                        raise GalatAplikasi("Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.", 429)
+                    antrean.append(kini)
+            return fungsi(*args, **kwargs)
+
+        return pembungkus
+
+    return dekorator

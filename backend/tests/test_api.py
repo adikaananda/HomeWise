@@ -140,3 +140,71 @@ def test_notifikasi_midtrans_valid_membuka_laporan(tmp_path):
     assert respon.status_code == 200
     with app.app_context():
         assert db.satu("SELECT laporan_terbuka FROM properti WHERE id = 2")["laporan_terbuka"] == 1
+
+
+def test_foto_survei_boleh_sebelum_bayar_tetapi_analisis_berbayar(klien):
+    header = masuk(klien, "demo@homewise.id", "demo12345")
+    respon = klien.post("/api/properti/2/foto", headers=header,
+                        data={"foto": (foto_uji(), "kamar-mandi.jpg"), "area": "kamar_mandi", "sumber": "survei"},
+                        content_type="multipart/form-data")
+    assert respon.status_code == 201
+    data = respon.json["data"]
+    assert data["foto"][0]["area"] == "kamar_mandi"
+    assert data["survei"]["kelengkapan"]["wajib_terisi"] == 1
+    assert data["tahap"]["kode"] == "disurvei"
+    assert klien.post("/api/properti/2/analisis-bangunan", headers=header).status_code == 402
+
+
+def test_simpan_checklist_survei(klien):
+    header = masuk(klien, "demo@homewise.id", "demo12345")
+    respon = klien.put("/api/properti/2/survei", headers=header,
+                       json={"jawaban": {"sertifikat": "AJB / girik", "daya_listrik": "900 VA"}, "catatan": "Jalan sempit"})
+    assert respon.status_code == 200
+    assert respon.json["data"]["survei"]["jawaban"]["sertifikat"] == "AJB / girik"
+    assert klien.put("/api/properti/2/survei", headers=header, json={"jawaban": {"sertifikat": "Asal"}}).status_code == 422
+
+
+def test_material_dan_prioritas_tersedia(klien):
+    header = masuk(klien, "demo@homewise.id", "demo12345")
+    biaya = klien.get("/api/properti/1", headers=header).json["data"]["biaya"]
+    assert biaya["material"] and all(m["jumlah_beli"] >= 1 for m in biaya["material"])
+    assert {p["kode"] for p in biaya["per_prioritas"]} == {"mendesak", "disarankan", "kosmetik"}
+    assert all("prioritas" in i for i in biaya["item"])
+
+
+def test_ganti_sandi(klien):
+    header = masuk(klien, "demo@homewise.id", "demo12345")
+    assert klien.post("/api/auth/ganti-sandi", headers=header, json={"sandi_lama": "salah123", "sandi_baru": "barubaru1"}).status_code == 400
+    assert klien.post("/api/auth/ganti-sandi", headers=header, json={"sandi_lama": "demo12345", "sandi_baru": "barubaru1"}).status_code == 200
+    masuk(klien, "demo@homewise.id", "barubaru1")
+
+
+def test_produksi_menolak_secret_key_bawaan(tmp_path):
+    with pytest.raises(RuntimeError):
+        buat_aplikasi({"LINGKUNGAN": "produksi", "DATABASE_PATH": str(tmp_path / "uji.db"), "DIR_UNGGAHAN": str(tmp_path / "u")})
+
+
+def test_admin_ubah_material_memengaruhi_daftar_belanja(klien):
+    admin = masuk(klien, "admin@homewise.id", "admin12345")
+    harga = next(h for h in klien.get("/api/admin/harga-referensi", headers=admin).json["data"] if h["kode"] == "perbaikan_atap")
+    respon = klien.patch(f"/api/admin/harga-referensi/{harga['id']}", headers=admin, json={
+        "material": [{"nama": "Genteng keramik", "satuan": "buah", "koefisien": 4, "kemasan": "buah", "isi_kemasan": 1}],
+    })
+    assert respon.json["data"]["material"][0]["nama"] == "Genteng keramik"
+
+    pencari = masuk(klien, "demo@homewise.id", "demo12345")
+    klien.post("/api/properti/1/analisis-bangunan", headers=pencari)
+    material = klien.get("/api/properti/1", headers=pencari).json["data"]["biaya"]["material"]
+    assert any(m["nama"] == "Genteng keramik" for m in material)
+
+
+def test_respons_ai_tidak_sesuai_kontrak_dibersihkan():
+    from app.layanan.ai_klien import _bersihkan_temuan
+
+    hasil = _bersihkan_temuan({"temuan": [
+        {"jenis": "retak_dinding", "tingkat": "sedang", "luas_m2": 3, "kepercayaan": 1.4, "foto_id": 1},
+        {"jenis": "jenis_asing", "tingkat": "sedang", "luas_m2": 3},
+        {"jenis": "atap_bocor", "tingkat": "parah", "luas_m2": 3},
+        {"jenis": "noda_lembap", "tingkat": "ringan", "luas_m2": "x"},
+    ]})
+    assert len(hasil["temuan"]) == 1 and hasil["temuan"][0]["kepercayaan"] == 1.0

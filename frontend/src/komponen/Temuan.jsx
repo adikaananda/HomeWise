@@ -1,5 +1,6 @@
 import { urlBerkas } from "../lib/api";
-import { useKonfigurasi } from "../lib/konfigurasi";
+import { labelArea, useKonfigurasi } from "../lib/konfigurasi";
+import { LencanaPrioritas } from "./Survei";
 import { LencanaLevel, Lencana } from "./ui";
 
 const LABEL_STATUS = {
@@ -11,12 +12,13 @@ const LABEL_STATUS = {
 };
 
 export function FotoBertanda({ foto, temuan }) {
-  const { jenis_kerusakan: jenis } = useKonfigurasi();
+  const konfigurasi = useKonfigurasi();
+  const { jenis_kerusakan: jenis } = konfigurasi;
   const milikFoto = temuan.filter((t) => t.foto_id === foto.id && t.kotak && t.status !== "ditolak");
   return (
     <figure className="foto-bertanda">
       <div className="foto-bertanda__gambar">
-        <img src={urlBerkas(foto.url)} alt={foto.ruang ? `Foto ${foto.ruang}` : "Foto bangunan"} loading="lazy" />
+        <img src={urlBerkas(foto.url)} alt={`Foto ${labelArea(konfigurasi, foto.area)}`} loading="lazy" />
         {milikFoto.map((t, i) => (
           <div
             key={i}
@@ -35,7 +37,7 @@ export function FotoBertanda({ foto, temuan }) {
         ))}
       </div>
       <figcaption className="teks-mini teks-redup">
-        {foto.ruang || foto.nama_asli || "Foto bangunan"}
+        {labelArea(konfigurasi, foto.area)}
         {foto.sumber === "analis" && <Lencana nada="sukses">Foto analis</Lencana>}
       </figcaption>
     </figure>
@@ -43,8 +45,12 @@ export function FotoBertanda({ foto, temuan }) {
 }
 
 export function TabelTemuan({ temuan, foto = [] }) {
-  const { jenis_kerusakan: jenis } = useKonfigurasi();
-  const namaFoto = (id) => foto.find((f) => f.id === id)?.ruang || (id ? `Foto #${id}` : "Pemeriksaan langsung");
+  const konfigurasi = useKonfigurasi();
+  const { jenis_kerusakan: jenis } = konfigurasi;
+  const namaFoto = (id) => {
+    const f = foto.find((x) => x.id === id);
+    return f ? labelArea(konfigurasi, f.area) : "Pemeriksaan langsung";
+  };
 
   return (
     <div className="tabel-wadah">
@@ -56,6 +62,7 @@ export function TabelTemuan({ temuan, foto = [] }) {
             <th>Tingkat</th>
             <th className="kanan">Luas</th>
             <th className="kanan">Keyakinan</th>
+            <th>Prioritas</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -66,6 +73,7 @@ export function TabelTemuan({ temuan, foto = [] }) {
               <tr key={i} style={t.status === "ditolak" ? { opacity: 0.5 } : undefined}>
                 <td className="tebal">
                   {jenis[t.jenis] || t.jenis}
+                  {t.sumber_foto === "iklan" && <div className="teks-mini" style={{ fontWeight: 600, color: "var(--peringatan)" }}>Dari foto iklan</div>}
                   {t.catatan_analis && <div className="teks-mini teks-redup" style={{ fontWeight: 400 }}>{t.catatan_analis}</div>}
                 </td>
                 <td className="teks-redup">{namaFoto(t.foto_id)}</td>
@@ -74,6 +82,7 @@ export function TabelTemuan({ temuan, foto = [] }) {
                 </td>
                 <td className="kanan">{t.luas_m2} m²</td>
                 <td className="kanan">{t.kepercayaan ? `${Math.round(t.kepercayaan * 100)}%` : "–"}</td>
+                <td title={t.alasan_prioritas || undefined}>{t.prioritas ? <LencanaPrioritas kode={t.prioritas} /> : "–"}</td>
                 <td>
                   <Lencana nada={status.nada}>{status.teks}</Lencana>
                 </td>

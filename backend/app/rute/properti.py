@@ -7,7 +7,7 @@ from ..keamanan import pengguna_aktif, wajib_login
 from ..layanan import berkas, laporan_pdf
 from ..layanan import properti as layanan_properti
 from ..respon import GalatAplikasi, sukses
-from ..validasi import SkemaProperti, SkemaUbahProperti, baca_json
+from ..validasi import SkemaProperti, SkemaSurvei, SkemaUbahProperti, baca_json
 
 bp = Blueprint("properti", __name__, url_prefix="/api/properti")
 
@@ -119,19 +119,37 @@ def buka_dengan_kredit(properti_id):
 def unggah_foto(properti_id):
     pengguna = pengguna_aktif()
     properti = layanan_properti.ambil_properti(properti_id, pengguna)
-    layanan_properti.wajib_premium(properti, pengguna)
+    daftar_foto = berkas.ambil_daftar_foto(request)
+    layanan_properti.periksa_kuota_foto(properti_id, len(daftar_foto))
+    area = berkas.baca_area(request.form.get("area"))
+    sumber = "analis" if pengguna["peran"] == "analis" else berkas.baca_sumber(request.form.get("sumber"))
     ruang = request.form.get("ruang", "").strip()[:60] or None
-    sumber = "analis" if pengguna["peran"] == "analis" else "pengguna"
-    for foto in berkas.ambil_daftar_foto(request):
+    for foto in daftar_foto:
         db.simpan("foto_bangunan", {
             "properti_id": properti_id,
             "nama_berkas": berkas.simpan_foto(foto),
             "nama_asli": foto.filename[:120],
             "ruang": ruang,
+            "area": area,
             "sumber": sumber,
             "diunggah_oleh": pengguna["id"],
         })
+    db.perbarui("properti", properti_id, {"diperbarui": db.sekarang()})
     return sukses(layanan_properti.detail_lengkap(properti, pengguna), 201)
+
+
+@bp.put("/<int:properti_id>/survei")
+@wajib_login()
+def simpan_survei(properti_id):
+    pengguna = pengguna_aktif()
+    layanan_properti.ambil_properti(properti_id, pengguna, izinkan_staf=False)
+    data = baca_json(SkemaSurvei)
+    db.perbarui("properti", properti_id, {
+        "data_survei": {"jawaban": data.jawaban, "catatan": data.catatan, "diperbarui": db.sekarang()},
+        "diperbarui": db.sekarang(),
+    })
+    properti = layanan_properti.ambil_properti(properti_id, pengguna)
+    return sukses(layanan_properti.detail_lengkap(properti, pengguna), pesan="Catatan survei tersimpan.")
 
 
 @bp.delete("/<int:properti_id>/foto/<int:foto_id>")
@@ -139,6 +157,9 @@ def unggah_foto(properti_id):
 def hapus_foto(properti_id, foto_id):
     pengguna = pengguna_aktif()
     properti = layanan_properti.ambil_properti(properti_id, pengguna)
+    terkunci = db.satu("SELECT tervalidasi FROM analisis_bangunan WHERE properti_id = ?", (properti_id,))
+    if terkunci and terkunci["tervalidasi"]:
+        raise GalatAplikasi("Foto tidak dapat dihapus setelah temuan divalidasi analis.", 409)
     foto = db.satu("SELECT * FROM foto_bangunan WHERE id = ? AND properti_id = ?", (foto_id, properti_id))
     if not foto:
         raise GalatAplikasi("Foto tidak ditemukan.", 404)

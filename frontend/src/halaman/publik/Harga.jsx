@@ -11,7 +11,7 @@ const PAKET = [
     harga: "Gratis",
     satuan: "selamanya",
     deskripsi: "Untuk menyaring kandidat sebelum survei.",
-    fitur: ["Skor kelayakan lokasi sesuai tujuan", "Peta risiko banjir, longsor, gempa", "Fasilitas terdekat", "Simpan dan bandingkan properti"],
+    fitur: ["Skor kelayakan lokasi sesuai tujuan", "Peta risiko banjir, longsor, gempa", "Mode survei & penyimpanan foto", "Simpan dan bandingkan properti"],
     aksi: "Mulai gratis",
   },
   {
@@ -19,7 +19,7 @@ const PAKET = [
     harga: rupiah(49000),
     satuan: "per properti",
     deskripsi: "Untuk properti yang serius Anda pertimbangkan.",
-    fitur: ["Semua fitur Ringkasan Lokasi", "Analisis foto kondisi bangunan", "Rincian estimasi renovasi", "Total investasi awal", "Unduh laporan PDF"],
+    fitur: ["Semua fitur Ringkasan Lokasi", "Analisis AI foto survei", "Prioritas perbaikan & daftar material", "Total investasi awal", "Unduh laporan PDF"],
     aksi: "Pilih Laporan Lengkap",
     unggulan: true,
   },

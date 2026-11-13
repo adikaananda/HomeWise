@@ -62,6 +62,76 @@ JENIS_KERUSAKAN = {
 
 PENALTI_TINGKAT = {"ringan": 4, "sedang": 9, "berat": 18}
 
+AREA_FOTO = [
+    {"kode": "fasad", "label": "Tampak depan", "wajib": True,
+     "panduan": "Foto dari seberang jalan sampai seluruh bangunan dan atap terlihat."},
+    {"kode": "dinding_bawah", "label": "Dinding bagian bawah", "wajib": True,
+     "panduan": "Dekatkan ke 0–100 cm dari lantai. Garis noda atau cat menggelembung bisa jadi bekas banjir."},
+    {"kode": "sudut_bukaan", "label": "Sudut jendela & pintu", "wajib": True,
+     "panduan": "Retak miring di sudut kusen bisa menandakan penurunan pondasi."},
+    {"kode": "plafon_basah", "label": "Plafon dekat kamar mandi & dapur", "wajib": True,
+     "panduan": "Cari noda kuning, plafon melendut, atau jamur."},
+    {"kode": "kamar_mandi", "label": "Kamar mandi", "wajib": True,
+     "panduan": "Dinding, nat keramik, dan lantai di sekitar kloset serta saluran air."},
+    {"kode": "lantai", "label": "Lantai", "wajib": True,
+     "panduan": "Keramik retak, terangkat, atau berbunyi kopong saat diketuk."},
+    {"kode": "atap_talang", "label": "Atap & talang", "wajib": False,
+     "panduan": "Dari luar atau loteng: genteng bergeser, talang berkarat, rembesan."},
+    {"kode": "lainnya", "label": "Area lain", "wajib": False,
+     "panduan": "Kerusakan lain yang Anda temukan saat survei."},
+]
+
+SUMBER_FOTO = {
+    "survei": "Survei pembeli",
+    "iklan": "Iklan / penjual",
+    "analis": "Analis HomeWise",
+}
+
+PERTANYAAN_SURVEI = [
+    {"kode": "riwayat_banjir", "label": "Menurut warga atau penjual, pernah banjir?",
+     "opsi": ["Tidak pernah", "Pernah, surut < 1 hari", "Pernah, lebih dari 1 hari", "Belum tahu"]},
+    {"kode": "sumber_air", "label": "Sumber air bersih",
+     "opsi": ["PDAM", "Sumur", "PDAM dan sumur", "Belum tahu"]},
+    {"kode": "daya_listrik", "label": "Daya listrik terpasang",
+     "opsi": ["900 VA", "1.300 VA", "2.200 VA", "3.500 VA atau lebih", "Belum tahu"]},
+    {"kode": "sertifikat", "label": "Jenis sertifikat",
+     "opsi": ["SHM", "SHGB", "AJB / girik", "Belum tahu"]},
+    {"kode": "izin_bangunan", "label": "IMB / PBG tersedia?",
+     "opsi": ["Ada", "Tidak ada", "Belum tahu"]},
+    {"kode": "akses_mobil", "label": "Mobil bisa masuk sampai depan rumah?",
+     "opsi": ["Bisa, dua arah", "Bisa, satu mobil", "Tidak bisa"]},
+]
+
+PRIORITAS = {
+    "mendesak": {"label": "Mendesak", "keterangan": "Perbaiki sebelum ditempati atau dipakai usaha."},
+    "disarankan": {"label": "Disarankan", "keterangan": "Perbaiki dalam 6–12 bulan agar kerusakan tidak meluas."},
+    "kosmetik": {"label": "Kosmetik", "keterangan": "Tampilan saja, bisa ditunda sesuai anggaran."},
+}
+
+MATRIKS_PRIORITAS = {
+    "atap_bocor": {"ringan": "disarankan", "sedang": "mendesak", "berat": "mendesak"},
+    "retak_dinding": {"ringan": "kosmetik", "sedang": "disarankan", "berat": "mendesak"},
+    "noda_lembap": {"ringan": "kosmetik", "sedang": "disarankan", "berat": "mendesak"},
+    "kerusakan_plafon": {"ringan": "kosmetik", "sedang": "disarankan", "berat": "mendesak"},
+    "keramik_rusak": {"ringan": "kosmetik", "sedang": "kosmetik", "berat": "disarankan"},
+    "cat_mengelupas": {"ringan": "kosmetik", "sedang": "kosmetik", "berat": "disarankan"},
+}
+
+ALASAN_PRIORITAS = {
+    "atap_bocor": "Air bocor merusak plafon, rangka, dan instalasi listrik.",
+    "retak_dinding": "Retak lebar atau memanjang perlu dipastikan tidak terkait pondasi.",
+    "noda_lembap": "Lembap terus-menerus memicu jamur dan merusak plester.",
+    "kerusakan_plafon": "Plafon rusak berat berisiko runtuh.",
+    "keramik_rusak": "Keramik terangkat bisa membuat tersandung.",
+    "cat_mengelupas": "Mengganggu tampilan, tidak memengaruhi struktur.",
+}
+
+URUTAN_PRIORITAS = ["mendesak", "disarankan", "kosmetik"]
+
+
+def tentukan_prioritas(jenis, tingkat):
+    return MATRIKS_PRIORITAS.get(jenis, {}).get(tingkat, "disarankan")
+
 PAKET = {
     "laporan_tunggal": {
         "nama": "Laporan Lengkap",

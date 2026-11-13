@@ -1,5 +1,17 @@
 import { useState } from "react";
-import { LuArrowLeft, LuArrowRight, LuBriefcase, LuCoffee, LuCrosshair, LuHouse, LuKeyRound, LuSearch, LuStore, LuUtensils } from "react-icons/lu";
+import {
+  LuArrowLeft,
+  LuArrowRight,
+  LuBriefcase,
+  LuCoffee,
+  LuCrosshair,
+  LuHouse,
+  LuKeyRound,
+  LuLocateFixed,
+  LuSearch,
+  LuStore,
+  LuUtensils,
+} from "react-icons/lu";
 import { Peta } from "../../komponen/Peta";
 import { KepalaHalaman } from "../../komponen/tata-letak/Aplikasi";
 import { AreaTeks, Isian, Kartu, Pemberitahuan, Pilihan, Tombol } from "../../komponen/ui";
@@ -51,6 +63,27 @@ function LangkahLokasi({ form, setForm, galat }) {
   const [hasil, setHasil] = useState([]);
   const [mencari, setMencari] = useState(false);
   const [pesan, setPesan] = useState("");
+  const [melacak, setMelacak] = useState(false);
+
+  const lokasiSaya = () => {
+    if (!navigator.geolocation) {
+      setPesan("Perangkat ini tidak mendukung deteksi lokasi.");
+      return;
+    }
+    setPesan("");
+    setMelacak(true);
+    navigator.geolocation.getCurrentPosition(
+      (posisi) => {
+        setMelacak(false);
+        setForm((f) => ({ ...f, lat: Number(posisi.coords.latitude.toFixed(6)), lng: Number(posisi.coords.longitude.toFixed(6)) }));
+      },
+      () => {
+        setMelacak(false);
+        setPesan("Lokasi tidak bisa dibaca. Izinkan akses lokasi di browser, atau cari alamat secara manual.");
+      },
+      { enableHighAccuracy: true, timeout: 12000 },
+    );
+  };
 
   const cari = async (e) => {
     e.preventDefault();
@@ -110,8 +143,11 @@ function LangkahLokasi({ form, setForm, galat }) {
       <div className="baris-antara">
         <span className="teks-kecil teks-redup baris" style={{ gap: 6 }}>
           <LuCrosshair aria-hidden="true" style={{ width: 16, height: 16 }} />
-          {form.lat != null ? `Titik terpilih: ${form.lat}, ${form.lng}` : "Klik peta untuk menandai titik properti."}
+          {form.lat != null ? `Titik terpilih: ${form.lat}, ${form.lng}` : "Ketuk peta untuk menandai titik properti."}
         </span>
+        <Tombol varian="sekunder" ukuran="kecil" ikon={LuLocateFixed} onClick={lokasiSaya} memuat={melacak}>
+          Saya sedang di lokasi
+        </Tombol>
       </div>
       {galat.lat && <p className="isian__galat">{galat.lat}</p>}
       <Isian

@@ -58,7 +58,7 @@ def ubah_pengguna(pengguna_id):
 @bp.get("/harga-referensi")
 @wajib_login("admin")
 def daftar_harga():
-    return sukses(db.banyak("SELECT * FROM harga_referensi ORDER BY kategori, nama"))
+    return sukses(db.banyak("SELECT * FROM harga_referensi ORDER BY kategori, nama", kolom_json=("material",)))
 
 
 @bp.post("/harga-referensi")
@@ -68,7 +68,7 @@ def tambah_harga():
     if db.satu("SELECT id FROM harga_referensi WHERE kode = ?", (data["kode"],)):
         raise GalatAplikasi("Kode pekerjaan sudah dipakai.", 409)
     id_baru = db.simpan("harga_referensi", data)
-    return sukses(db.satu("SELECT * FROM harga_referensi WHERE id = ?", (id_baru,)), 201)
+    return sukses(db.satu("SELECT * FROM harga_referensi WHERE id = ?", (id_baru,), ("material",)), 201)
 
 
 @bp.patch("/harga-referensi/<int:harga_id>")
@@ -79,7 +79,7 @@ def ubah_harga(harga_id):
     data = baca_json(SkemaUbahHargaReferensi).model_dump(exclude_none=True)
     data["diperbarui"] = db.sekarang()
     db.perbarui("harga_referensi", harga_id, data)
-    return sukses(db.satu("SELECT * FROM harga_referensi WHERE id = ?", (harga_id,)))
+    return sukses(db.satu("SELECT * FROM harga_referensi WHERE id = ?", (harga_id,), ("material",)))
 
 
 @bp.delete("/harga-referensi/<int:harga_id>")

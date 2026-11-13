@@ -8,7 +8,8 @@ from PIL import Image, ImageDraw, ImageFilter
 
 from . import db
 from .keamanan import hash_sandi
-from .layanan import properti as layanan_properti, simulasi_ai
+from .layanan import properti as layanan_properti
+from .layanan.ahsp import MATERIAL_BAWAAN
 
 PENGGUNA = [
     ("Admin HomeWise", "admin@homewise.id", "admin12345", "admin", None),
@@ -94,6 +95,19 @@ def _foto_contoh(nama_berkas, warna_dinding, gaya, benih):
             warna = tuple(max(0, c - 8 - i * 5) for c in warna_dinding)
             kanvas.ellipse([380 - r, 160 - r // 1.4, 380 + r, 160 + r // 1.4], fill=warna)
         gambar = gambar.filter(ImageFilter.GaussianBlur(3))
+    elif gaya == "fasad":
+        kanvas.rectangle([0, 0, lebar, 260], fill=(173, 214, 245))
+        kanvas.polygon([(140, 300), (480, 120), (820, 300)], fill=(120, 72, 58))
+        kanvas.rectangle([180, 300, 780, tinggi - 90], fill=warna_dinding)
+        for x in (240, 560):
+            kanvas.rectangle([x, 360, x + 150, 500], fill=(70, 110, 150))
+        kanvas.rectangle([420, 420, 520, tinggi - 90], fill=(140, 96, 60))
+    elif gaya == "atap":
+        for baris in range(0, tinggi - 90, 40):
+            for kolom in range(-30 if baris % 80 else 0, lebar, 60):
+                kanvas.rounded_rectangle([kolom, baris, kolom + 56, baris + 36], 8,
+                                         fill=tuple(max(0, c - acak.randint(0, 25)) for c in warna_dinding))
+        kanvas.polygon([(370, 220), (470, 230), (450, 330), (360, 310)], fill=(40, 34, 32))
     else:
         for _ in range(9):
             x, y = acak.randint(150, 700), acak.randint(120, 520)
@@ -104,6 +118,15 @@ def _foto_contoh(nama_berkas, warna_dinding, gaya, benih):
     gambar.save(Path(current_app.config["DIR_UNGGAHAN"]) / nama_berkas, "JPEG", quality=82)
 
 
+def _simpan_foto_contoh(properti_id, pengguna_id, area, ruang, warna, gaya, benih):
+    nama_berkas = f"contoh-{uuid.uuid4().hex[:10]}.jpg"
+    _foto_contoh(nama_berkas, warna, gaya, benih)
+    return db.simpan("foto_bangunan", {
+        "properti_id": properti_id, "nama_berkas": nama_berkas, "nama_asli": f"{ruang}.jpg",
+        "ruang": ruang, "area": area, "sumber": "survei", "diunggah_oleh": pengguna_id,
+    })
+
+
 def _waktu_lalu(hari, jam=0):
     return (datetime.now(timezone.utc) - timedelta(days=hari, hours=jam)).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -112,20 +135,17 @@ def isi_data_awal():
     if db.nilai("SELECT COUNT(*) FROM pengguna"):
         return
 
-    try:
-        id_pengguna = {}
-        for nama, email, sandi, peran, perusahaan in PENGGUNA:
-            id_pengguna[peran] = db.simpan("pengguna", {
-                "nama": nama, "email": email, "sandi_hash": hash_sandi(sandi), "peran": peran,
-                "perusahaan": perusahaan, "kredit_laporan": 1 if peran == "pencari" else 0,
-            })
-    except Exception as galat:
-        current_app.logger.warning("Data awal dilewati (mungkin sudah dibuat proses lain): %s", galat)
-        return
+    id_pengguna = {}
+    for nama, email, sandi, peran, perusahaan in PENGGUNA:
+        id_pengguna[peran] = db.simpan("pengguna", {
+            "nama": nama, "email": email, "sandi_hash": hash_sandi(sandi), "peran": peran,
+            "perusahaan": perusahaan, "kredit_laporan": 1 if peran == "pencari" else 0,
+        })
 
     for kode, nama, kategori, material, upah in HARGA_REFERENSI:
         db.simpan("harga_referensi", {"kode": kode, "nama": nama, "kategori": kategori, "satuan": "m2",
-                                      "harga_material": material, "harga_upah": upah})
+                                      "harga_material": material, "harga_upah": upah,
+                                      "material": MATERIAL_BAWAAN.get(kode, [])})
 
     for nama, jenis, penyedia, cakupan, status, hari in SUMBER_DATA:
         db.simpan("sumber_data", {"nama": nama, "jenis": jenis, "penyedia": penyedia, "cakupan": cakupan,
@@ -136,39 +156,47 @@ def isi_data_awal():
         properti_id = db.simpan("properti", {**data, "pengguna_id": id_pengguna["pencari"],
                                              "dibuat": _waktu_lalu(6 - indeks * 2), "diperbarui": _waktu_lalu(5 - indeks * 2)})
         daftar_id.append(properti_id)
-        data_lok = simulasi_ai.analisis_lokasi(data["lat"], data["lng"], data["alamat"])
-        hasil_lok = layanan_properti.evaluasi_lokasi(data_lok, data["tujuan"])
-        db.simpan_atau_ganti("analisis_lokasi", {
-            "properti_id": properti_id,
-            "data_mentah": data_lok,
-            "hasil": hasil_lok,
-            "skor_total": hasil_lok["skor_total"],
-            "sumber": "simulasi",
-            "dibuat": db.sekarang(),
-        }, "properti_id")
+        layanan_properti.jalankan_analisis_lokasi(db.satu("SELECT * FROM properti WHERE id = ?", (properti_id,)))
 
     properti_utama = daftar_id[0]
-    for benih, (ruang, warna, gaya) in enumerate([
-        ("Kamar tidur utama", (226, 220, 206), "retak"),
-        ("Dapur", (214, 222, 214), "lembap"),
-        ("Ruang tamu", (232, 214, 190), "kelupas"),
+    foto_utama = {}
+    for benih, (area, ruang, warna, gaya) in enumerate([
+        ("fasad", "Tampak depan", (236, 238, 242), "fasad"),
+        ("sudut_bukaan", "Kamar tidur utama", (226, 220, 206), "retak"),
+        ("plafon_basah", "Plafon dapur", (214, 222, 214), "lembap"),
+        ("dinding_bawah", "Ruang tamu", (232, 214, 190), "kelupas"),
+        ("atap_talang", "Atap belakang", (150, 92, 70), "atap"),
     ]):
-        nama_berkas = f"contoh-{uuid.uuid4().hex[:10]}.jpg"
-        _foto_contoh(nama_berkas, warna, gaya, benih)
-        db.simpan("foto_bangunan", {"properti_id": properti_utama, "nama_berkas": nama_berkas, "nama_asli": f"{ruang}.jpg",
-                                    "ruang": ruang, "sumber": "pengguna", "diunggah_oleh": id_pengguna["pencari"]})
-    foto = db.banyak("SELECT id FROM foto_bangunan WHERE properti_id = ? ORDER BY id", (properti_utama,))
+        foto_utama[area] = _simpan_foto_contoh(properti_utama, id_pengguna["pencari"], area, ruang, warna, gaya, benih)
+
+    for benih, (area, ruang, warna, gaya) in enumerate([
+        ("fasad", "Tampak depan", (240, 236, 228), "fasad"),
+        ("dinding_bawah", "Dinding ruang depan", (230, 226, 214), "kelupas"),
+    ], start=10):
+        _simpan_foto_contoh(daftar_id[2], id_pengguna["pencari"], area, ruang, warna, gaya, benih)
+
+    db.perbarui("properti", properti_utama, {"data_survei": {
+        "jawaban": {
+            "riwayat_banjir": "Tidak pernah", "sumber_air": "PDAM", "daya_listrik": "2.200 VA",
+            "sertifikat": "SHM", "izin_bangunan": "Ada", "akses_mobil": "Bisa, dua arah",
+        },
+        "catatan": "Tetangga bilang talang belakang sering meluap saat hujan deras.",
+        "diperbarui": _waktu_lalu(3),
+    }})
+
     temuan = [
-        {**t, "foto_id": foto[indeks]["id"], "status": "ai"}
-        for indeks, t in [
-            (0, {"jenis": "retak_dinding", "tingkat": "sedang", "kepercayaan": 0.91, "luas_m2": 4.5,
-                 "kotak": {"x": 0.24, "y": 0.07, "lebar": 0.3, "tinggi": 0.82}}),
-            (1, {"jenis": "noda_lembap", "tingkat": "sedang", "kepercayaan": 0.86, "luas_m2": 6.0,
-                 "kotak": {"x": 0.2, "y": 0.04, "lebar": 0.42, "tinggi": 0.4}}),
-            (1, {"jenis": "kerusakan_plafon", "tingkat": "ringan", "kepercayaan": 0.68, "luas_m2": 3.0,
-                 "kotak": {"x": 0.62, "y": 0.04, "lebar": 0.3, "tinggi": 0.22}}),
-            (2, {"jenis": "cat_mengelupas", "tingkat": "ringan", "kepercayaan": 0.94, "luas_m2": 12.0,
-                 "kotak": {"x": 0.14, "y": 0.16, "lebar": 0.72, "tinggi": 0.68}}),
+        {**t, "foto_id": foto_utama[area], "status": "ai"}
+        for area, t in [
+            ("sudut_bukaan", {"jenis": "retak_dinding", "tingkat": "sedang", "kepercayaan": 0.91, "luas_m2": 4.5,
+                              "kotak": {"x": 0.24, "y": 0.07, "lebar": 0.3, "tinggi": 0.82}}),
+            ("plafon_basah", {"jenis": "noda_lembap", "tingkat": "sedang", "kepercayaan": 0.86, "luas_m2": 6.0,
+                              "kotak": {"x": 0.2, "y": 0.04, "lebar": 0.42, "tinggi": 0.4}}),
+            ("plafon_basah", {"jenis": "kerusakan_plafon", "tingkat": "ringan", "kepercayaan": 0.68, "luas_m2": 3.0,
+                              "kotak": {"x": 0.62, "y": 0.04, "lebar": 0.3, "tinggi": 0.22}}),
+            ("dinding_bawah", {"jenis": "cat_mengelupas", "tingkat": "ringan", "kepercayaan": 0.94, "luas_m2": 12.0,
+                               "kotak": {"x": 0.14, "y": 0.16, "lebar": 0.72, "tinggi": 0.68}}),
+            ("atap_talang", {"jenis": "atap_bocor", "tingkat": "sedang", "kepercayaan": 0.79, "luas_m2": 5.0,
+                             "kotak": {"x": 0.38, "y": 0.3, "lebar": 0.26, "tinggi": 0.3}}),
         ]
     ]
     layanan_properti.simpan_hasil_bangunan(properti_utama, temuan, "simulasi")

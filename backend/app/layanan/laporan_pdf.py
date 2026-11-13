@@ -7,7 +7,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import HRFlowable, ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from .konstanta import JENIS_KERUSAKAN, KATEGORI_FASILITAS, TUJUAN
+from .konstanta import AREA_FOTO, JENIS_KERUSAKAN, KATEGORI_FASILITAS, PERTANYAAN_SURVEI, PRIORITAS, SUMBER_FOTO, TUJUAN
 
 BIRU = colors.HexColor("#0A43EF")
 BIRU_TUA = colors.HexColor("#0832C8")
@@ -16,7 +16,7 @@ TINTA = colors.HexColor("#0E1A3D")
 ABU = colors.HexColor("#5B6788")
 GARIS = colors.HexColor("#DDE4F3")
 LATAR = colors.HexColor("#F4F7FE")
-WARNA_TINGKAT = {"rendah": HIJAU, "ringan": HIJAU, "sedang": colors.HexColor("#C98A00"), "tinggi": colors.HexColor("#D23B3B"), "berat": colors.HexColor("#D23B3B")}
+WARNA_TINGKAT = {"mendesak": colors.HexColor("#D23B3B"), "disarankan": colors.HexColor("#C98A00"), "kosmetik": HIJAU, "rendah": HIJAU, "ringan": HIJAU, "sedang": colors.HexColor("#C98A00"), "tinggi": colors.HexColor("#D23B3B"), "berat": colors.HexColor("#D23B3B")}
 
 GAYA = {
     "judul": ParagraphStyle("judul", fontName="Helvetica-Bold", fontSize=20, leading=24, textColor=TINTA),
@@ -141,35 +141,83 @@ def buat_pdf(detail, nomor, tanggal):
             [80 * mm, 60 * mm, 30 * mm], rata_kanan=(2,),
         ))
 
+    survei = detail.get("survei") or {}
+    kelengkapan = survei.get("kelengkapan")
+    if detail.get("foto") or survei.get("jawaban"):
+        isi.append(_p("Hasil survei lapangan", "h2"))
+        if kelengkapan:
+            per_sumber = {}
+            for f in detail["foto"]:
+                per_sumber[f["sumber"]] = per_sumber.get(f["sumber"], 0) + 1
+            teks_sumber = ", ".join(f"{SUMBER_FOTO[k]} {v} foto" for k, v in per_sumber.items()) or "belum ada foto"
+            isi.append(_p(
+                f"Kelengkapan foto area wajib {kelengkapan['wajib_terisi']}/{kelengkapan['wajib_total']}. Sumber foto: {teks_sumber}."
+                + (f" Belum difoto: {', '.join(kelengkapan['belum']).lower()}." if kelengkapan["belum"] else ""),
+                "isi",
+            ))
+        jawaban = survei.get("jawaban") or {}
+        if jawaban:
+            isi.append(Spacer(1, 6))
+            isi.append(_tabel(
+                [["Pemeriksaan", "Jawaban"]] + [[p["label"], jawaban[p["kode"]]] for p in PERTANYAAN_SURVEI if p["kode"] in jawaban],
+                [110 * mm, 60 * mm],
+            ))
+        if survei.get("catatan"):
+            isi.append(_p(f"<i>Catatan survei:</i> {survei['catatan']}", "kecil"))
+
     if bangunan:
         isi.append(_p("Kondisi bangunan", "h2"))
         status = "Divalidasi analis HomeWise" if bangunan["tervalidasi"] else "Hasil analisis AI, belum divalidasi analis"
         isi.append(_p(f"{bangunan['ringkasan']} <i>({status})</i>", "isi"))
         isi.append(Spacer(1, 6))
         aktif = [t for t in bangunan["temuan"] if t.get("status") != "ditolak"]
+        label_area = {a["kode"]: a["label"] for a in AREA_FOTO}
         if aktif:
             isi.append(_tabel(
-                [["Temuan", "Tingkat", "Luas", "Keyakinan"]] + [
-                    [JENIS_KERUSAKAN[t["jenis"]], _berwarna(t["tingkat"].title(), t["tingkat"]), f"{t['luas_m2']} m²",
-                     f"{t['kepercayaan'] * 100:.0f}%" if t.get("kepercayaan") else "Analis"]
+                [["Temuan", "Area", "Tingkat", "Luas", "Prioritas"]] + [
+                    [JENIS_KERUSAKAN[t["jenis"]] + (" *" if t.get("sumber_foto") == "iklan" else ""),
+                     label_area.get(t.get("area"), "-"),
+                     _berwarna(t["tingkat"].title(), t["tingkat"]), f"{t['luas_m2']} m²",
+                     _berwarna(PRIORITAS[t["prioritas"]]["label"], t["prioritas"])]
                     for t in aktif
                 ],
-                [70 * mm, 35 * mm, 30 * mm, 35 * mm], rata_kanan=(2, 3),
+                [50 * mm, 45 * mm, 25 * mm, 20 * mm, 30 * mm], rata_kanan=(3,),
             ))
+            if bangunan.get("ada_foto_iklan"):
+                isi.append(_p("* Terdeteksi dari foto iklan atau penjual, belum dipastikan saat survei.", "kecil"))
 
     if biaya and biaya["item"]:
+        isi.append(_p("Prioritas perbaikan", "h2"))
+        isi.append(_tabel(
+            [["Prioritas", "Keterangan", "Biaya"]] + [
+                [_berwarna(p["label"], p["kode"]), p["keterangan"], rupiah(p["jumlah"])] for p in biaya["per_prioritas"] if p["jumlah_pekerjaan"]
+            ],
+            [30 * mm, 100 * mm, 40 * mm], rata_kanan=(2,),
+        ))
         isi.append(_p("Estimasi biaya renovasi", "h2"))
         isi.append(_tabel(
-            [["Pekerjaan", "Volume", "Harga satuan", "Jumlah"]] + [
-                [i["pekerjaan"], f"{i['volume']} {i['satuan']}", rupiah(i["harga_satuan"]), rupiah(i["jumlah"])] for i in biaya["item"]
+            [["Pekerjaan", "Prioritas", "Volume", "Harga satuan", "Jumlah"]] + [
+                [i["pekerjaan"], PRIORITAS[i.get("prioritas", "disarankan")]["label"], f"{i['volume']} {i['satuan'].replace('m2', 'm²')}",
+                 rupiah(i["harga_satuan"]), rupiah(i["jumlah"])] for i in biaya["item"]
             ] + [
-                ["Subtotal", "", "", rupiah(biaya["subtotal"])],
-                ["Kontingensi 10%", "", "", rupiah(biaya["kontingensi"])],
-                [_p("<b>Total estimasi</b>"), "", "", _p(f"<b>{rupiah(biaya['total'])}</b>")],
+                ["Subtotal", "", "", "", rupiah(biaya["subtotal"])],
+                ["Kontingensi 10%", "", "", "", rupiah(biaya["kontingensi"])],
+                [_p("<b>Total estimasi</b>"), "", "", "", _p(f"<b>{rupiah(biaya['total'])}</b>")],
             ],
-            [72 * mm, 28 * mm, 35 * mm, 35 * mm], rata_kanan=(1, 2, 3),
+            [58 * mm, 24 * mm, 25 * mm, 30 * mm, 33 * mm], rata_kanan=(2, 3, 4),
         ))
         isi.append(_p(f"Rentang wajar {rupiah(biaya['rentang_min'])} – {rupiah(biaya['rentang_maks'])}.", "kecil"))
+
+        if biaya.get("material"):
+            isi.append(_p("Perkiraan kebutuhan material", "h2"))
+            isi.append(_tabel(
+                [["Material", "Kebutuhan", "Beli"]] + [
+                    [m["nama"], f"{str(m['jumlah']).replace('.', ',')} {m['satuan'].replace('m3', 'm³').replace('m2', 'm²')}",
+                     f"{m['jumlah_beli']} {m['kemasan']}"] for m in biaya["material"]
+                ],
+                [80 * mm, 40 * mm, 50 * mm], rata_kanan=(1,),
+            ))
+            isi.append(_p("Koefisien mengacu AHSP PUPR. Jumlah beli dibulatkan ke kemasan terdekat dan belum termasuk sisa potong.", "kecil"))
 
     if inv:
         isi.append(_p("Total investasi awal", "h2"))
@@ -178,7 +226,8 @@ def buat_pdf(detail, nomor, tanggal):
         isi.append(_tabel(
             [["Komponen", "Jumlah"], ["Harga penawaran", rupiah(inv["harga_penawaran"])], ["Estimasi renovasi", rupiah(inv["renovasi"])]]
             + [[r["nama"], rupiah(r["jumlah"])] for r in inv["rincian_transaksi"]]
-            + [[_p("<b>Total investasi awal</b>"), _p(f"<b>{rupiah(inv['total'])}</b>")]],
+            + [[_p("<b>Total investasi awal</b>"), _p(f"<b>{rupiah(inv['total'])}</b>")]]
+            + [["Jika hanya perbaikan mendesak", rupiah(inv.get("total_minimum", inv["total"]))]],
             [120 * mm, 50 * mm], rata_kanan=(1,),
         ))
         isi.append(_p(inv["asumsi"], "kecil"))

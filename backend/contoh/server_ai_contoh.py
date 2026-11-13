@@ -5,7 +5,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from app.layanan import lokasi_asli, simulasi_ai
+from app.layanan import simulasi_ai
 
 app = Flask(__name__)
 KUNCI = os.getenv("AI_API_KEY", "")
@@ -20,17 +20,16 @@ def periksa_kunci():
 @app.post("/lokasi")
 def lokasi():
     data = request.get_json()
-    return jsonify(
-        lokasi_asli.analisis_lokasi(data["lat"], data["lng"], data.get("alamat"), data.get("radius_m", 5000))
-    )
+    return jsonify(simulasi_ai.analisis_lokasi(data["lat"], data["lng"], data.get("alamat")))
 
 
 @app.post("/kondisi-bangunan")
 def kondisi_bangunan():
     daftar_id = request.form.get("foto_id", "").split(",")
+    daftar_area = request.form.get("area", "").split(",")
     foto = [
-        {"id": int(foto_id), "sidik": berkas.filename}
-        for foto_id, berkas in zip(daftar_id, request.files.getlist("foto"))
+        {"id": int(foto_id), "area": area, "sidik": berkas.filename}
+        for foto_id, area, berkas in zip(daftar_id, daftar_area, request.files.getlist("foto"))
     ]
     return jsonify(simulasi_ai.analisis_foto(foto))
 
