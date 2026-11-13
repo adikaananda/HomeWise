@@ -6,7 +6,7 @@ from flask import current_app
 
 from .. import db
 from ..respon import GalatAplikasi
-from . import penjelasan, simulasi_ai
+from . import lokasi_asli, penjelasan, simulasi_ai
 
 
 def _mode():
@@ -45,6 +45,8 @@ def analisis_lokasi(lat, lng, alamat=None, properti_id=None):
     try:
         if mode == "remote":
             data = _post("/lokasi", json={"lat": lat, "lng": lng, "alamat": alamat, "radius_m": 5000})
+        elif mode == "asli":
+            data = lokasi_asli.analisis_lokasi(lat, lng, alamat)
         else:
             data = simulasi_ai.analisis_lokasi(lat, lng, alamat)
         _catat(properti_id, "lokasi", "berhasil", mode, mulai)
@@ -57,6 +59,7 @@ def analisis_lokasi(lat, lng, alamat=None, properti_id=None):
 def analisis_foto(daftar_foto, properti_id=None):
     mulai = time.perf_counter()
     mode = _mode()
+    sumber = mode
     try:
         if mode == "remote":
             dir_unggahan = Path(current_app.config["DIR_UNGGAHAN"])
@@ -67,11 +70,12 @@ def analisis_foto(daftar_foto, properti_id=None):
                 for _, (_, pegangan) in berkas:
                     pegangan.close()
         else:
+            sumber = "simulasi"
             data = simulasi_ai.analisis_foto(daftar_foto)
-        _catat(properti_id, "bangunan", "berhasil", mode, mulai)
-        return data, mode
+        _catat(properti_id, "bangunan", "berhasil", sumber, mulai)
+        return data, sumber
     except requests.RequestException as e:
-        _catat(properti_id, "bangunan", "gagal", mode, mulai, str(e)[:300])
+        _catat(properti_id, "bangunan", "gagal", sumber, mulai, str(e)[:300])
         raise GalatAplikasi("Layanan analisis foto sedang tidak tersedia. Coba beberapa saat lagi.", 503)
 
 

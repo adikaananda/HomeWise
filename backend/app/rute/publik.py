@@ -12,9 +12,12 @@ bp = Blueprint("publik", __name__, url_prefix="/api")
 
 @bp.get("/kesehatan")
 def kesehatan():
+    mode_ai = current_app.config["AI_MODE"]
+    if mode_ai == "remote" and not current_app.config["AI_BASE_URL"]:
+        mode_ai = "simulasi"
     return sukses({
         "status": "sehat",
-        "mode_ai": current_app.config["AI_MODE"] if current_app.config["AI_BASE_URL"] else "simulasi",
+        "mode_ai": mode_ai,
         "mode_pembayaran": midtrans.mode(),
     })
 

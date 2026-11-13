@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 from . import db
 from .keamanan import hash_sandi
-from .layanan import properti as layanan_properti
+from .layanan import properti as layanan_properti, simulasi_ai
 
 PENGGUNA = [
     ("Admin HomeWise", "admin@homewise.id", "admin12345", "admin", None),
@@ -112,12 +112,16 @@ def isi_data_awal():
     if db.nilai("SELECT COUNT(*) FROM pengguna"):
         return
 
-    id_pengguna = {}
-    for nama, email, sandi, peran, perusahaan in PENGGUNA:
-        id_pengguna[peran] = db.simpan("pengguna", {
-            "nama": nama, "email": email, "sandi_hash": hash_sandi(sandi), "peran": peran,
-            "perusahaan": perusahaan, "kredit_laporan": 1 if peran == "pencari" else 0,
-        })
+    try:
+        id_pengguna = {}
+        for nama, email, sandi, peran, perusahaan in PENGGUNA:
+            id_pengguna[peran] = db.simpan("pengguna", {
+                "nama": nama, "email": email, "sandi_hash": hash_sandi(sandi), "peran": peran,
+                "perusahaan": perusahaan, "kredit_laporan": 1 if peran == "pencari" else 0,
+            })
+    except Exception as galat:
+        current_app.logger.warning("Data awal dilewati (mungkin sudah dibuat proses lain): %s", galat)
+        return
 
     for kode, nama, kategori, material, upah in HARGA_REFERENSI:
         db.simpan("harga_referensi", {"kode": kode, "nama": nama, "kategori": kategori, "satuan": "m2",
@@ -132,7 +136,16 @@ def isi_data_awal():
         properti_id = db.simpan("properti", {**data, "pengguna_id": id_pengguna["pencari"],
                                              "dibuat": _waktu_lalu(6 - indeks * 2), "diperbarui": _waktu_lalu(5 - indeks * 2)})
         daftar_id.append(properti_id)
-        layanan_properti.jalankan_analisis_lokasi(db.satu("SELECT * FROM properti WHERE id = ?", (properti_id,)))
+        data_lok = simulasi_ai.analisis_lokasi(data["lat"], data["lng"], data["alamat"])
+        hasil_lok = layanan_properti.evaluasi_lokasi(data_lok, data["tujuan"])
+        db.simpan_atau_ganti("analisis_lokasi", {
+            "properti_id": properti_id,
+            "data_mentah": data_lok,
+            "hasil": hasil_lok,
+            "skor_total": hasil_lok["skor_total"],
+            "sumber": "simulasi",
+            "dibuat": db.sekarang(),
+        }, "properti_id")
 
     properti_utama = daftar_id[0]
     for benih, (ruang, warna, gaya) in enumerate([

@@ -209,7 +209,11 @@ export function AdminAnalisis() {
                       <td className="teks-redup">{tanggal(l.dibuat, true)}</td>
                       <td style={{ textTransform: "capitalize" }}>{l.jenis}</td>
                       <td>{l.properti_nama || "Cek cepat publik"}</td>
-                      <td><Lencana nada={l.sumber === "remote" ? "sukses" : "peringatan"}>{l.sumber === "remote" ? "Model AI" : "Simulasi"}</Lencana></td>
+                      <td>
+                        <Lencana nada={l.sumber === "simulasi" ? "peringatan" : "sukses"}>
+                          {l.sumber === "asli" ? "Data Asli" : l.sumber === "remote" ? "Model AI" : "Simulasi"}
+                        </Lencana>
+                      </td>
                       <td className="kanan">{angka(l.durasi_ms)} ms</td>
                       <td>
                         <Lencana nada={l.status === "berhasil" ? "sukses" : "bahaya"}>{kapital(l.status)}</Lencana>

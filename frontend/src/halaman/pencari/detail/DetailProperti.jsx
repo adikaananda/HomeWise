@@ -174,7 +174,11 @@ export default function DetailProperti({ id }) {
         {properti.luas_tanah && <Lencana nada="netral">LT {properti.luas_tanah} m²</Lencana>}
         {properti.tahun_bangun && <Lencana nada="netral">Dibangun {properti.tahun_bangun}</Lencana>}
         <Lencana nada={premium ? "sukses" : undefined}>{premium ? "Laporan lengkap" : "Ringkasan gratis"}</Lencana>
-        {detail.lokasi?.sumber === "simulasi" && <Lencana nada="peringatan">Data AI mode demo</Lencana>}
+        {detail.lokasi?.sumber === "simulasi" ? (
+          <Lencana nada="peringatan">Data AI mode demo</Lencana>
+        ) : detail.lokasi?.sumber ? (
+          <Lencana nada="sukses">Data geospasial asli</Lencana>
+        ) : null}
         {properti.sumber_iklan && (
           <a href={properti.sumber_iklan} target="_blank" rel="noreferrer" className="lencana">
             <LuExternalLink aria-hidden="true" /> Lihat iklan
