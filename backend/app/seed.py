@@ -135,12 +135,16 @@ def isi_data_awal():
     if db.nilai("SELECT COUNT(*) FROM pengguna"):
         return
 
-    id_pengguna = {}
-    for nama, email, sandi, peran, perusahaan in PENGGUNA:
-        id_pengguna[peran] = db.simpan("pengguna", {
-            "nama": nama, "email": email, "sandi_hash": hash_sandi(sandi), "peran": peran,
-            "perusahaan": perusahaan, "kredit_laporan": 1 if peran == "pencari" else 0,
-        })
+    try:
+        id_pengguna = {}
+        for nama, email, sandi, peran, perusahaan in PENGGUNA:
+            id_pengguna[peran] = db.simpan("pengguna", {
+                "nama": nama, "email": email, "sandi_hash": hash_sandi(sandi), "peran": peran,
+                "perusahaan": perusahaan, "kredit_laporan": 1 if peran == "pencari" else 0,
+            })
+    except Exception as galat:
+        current_app.logger.warning("Data awal dilewati (mungkin sudah dibuat proses lain): %s", galat)
+        return
 
     for kode, nama, kategori, material, upah in HARGA_REFERENSI:
         db.simpan("harga_referensi", {"kode": kode, "nama": nama, "kategori": kategori, "satuan": "m2",

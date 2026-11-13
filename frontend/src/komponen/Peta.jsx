@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
 const URL_LEAFLET = "https://unpkg.com/leaflet@1.9.4/dist";
-const UBIN = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-const ATRIBUSI = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
+const UBIN = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const ATRIBUSI = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 export const WARNA_INDIKATOR = {
   kesehatan: "#e5484d",
@@ -64,7 +64,7 @@ export function Peta({ pusat, fasilitas = DAFTAR_KOSONG, kategoriFasilitas = OBJ
           pusat ? [pusat.lat, pusat.lng] : [-6.2, 106.82],
           pusat ? zoom : 11,
         );
-        L.tileLayer(UBIN, { attribution: ATRIBUSI, maxZoom: 19, subdomains: "abcd" }).addTo(peta.current);
+        L.tileLayer(UBIN, { attribution: ATRIBUSI, maxZoom: 19 }).addTo(peta.current);
         lapisan.current = L.layerGroup().addTo(peta.current);
         peta.current.on("click", (e) => onPilihRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng }));
         setStatus("siap");

@@ -6,7 +6,7 @@ from flask import current_app
 
 from .. import db
 from ..respon import GalatAplikasi
-from . import penjelasan, simulasi_ai
+from . import lokasi_asli, penjelasan, simulasi_ai
 from .konstanta import JENIS_KERUSAKAN
 
 
@@ -81,6 +81,8 @@ def analisis_lokasi(lat, lng, alamat=None, properti_id=None):
     try:
         if mode == "remote":
             data = _periksa_lokasi(_post("/lokasi", json={"lat": lat, "lng": lng, "alamat": alamat, "radius_m": 5000}))
+        elif mode == "asli":
+            data = lokasi_asli.analisis_lokasi(lat, lng, alamat)
         else:
             data = simulasi_ai.analisis_lokasi(lat, lng, alamat)
         _catat(properti_id, "lokasi", "berhasil", mode, mulai)
