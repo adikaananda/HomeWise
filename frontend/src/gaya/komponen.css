@@ -939,13 +939,39 @@ select.kontrol {
 
 .kotak-temuan span {
   position: absolute;
-  top: -22px;
-  left: -2px;
-  padding: 1px 6px;
+  top: 4px;
+  left: 4px;
+  width: max-content;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px 6px;
   border-radius: 4px;
   background: var(--lime);
   color: var(--tinta);
   font-size: 10px;
   font-weight: 800;
+  line-height: 1.3;
   white-space: nowrap;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(14, 26, 61, 0.22);
+}
+
+.kotak-temuan--sedang {
+  border-color: #f5b400;
+}
+
+.kotak-temuan--sedang span {
+  background: #f5b400;
+  color: var(--tinta);
+}
+
+.kotak-temuan--berat {
+  border-color: #e5484d;
+}
+
+.kotak-temuan--berat span {
+  background: #e5484d;
+  color: #ffffff;
 }

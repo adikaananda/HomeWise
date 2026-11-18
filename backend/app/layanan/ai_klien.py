@@ -1,3 +1,4 @@
+import sys
 import time
 from pathlib import Path
 
@@ -92,9 +93,23 @@ def analisis_lokasi(lat, lng, alamat=None, properti_id=None):
         raise GalatAplikasi("Layanan analisis lokasi sedang tidak tersedia. Coba beberapa saat lagi.", 503)
 
 
+def _prediksi_model_lokal(daftar_foto, dir_unggahan):
+    akar = str(Path(__file__).resolve().parents[3])
+    if akar not in sys.path:
+        sys.path.insert(0, akar)
+    try:
+        from model_klasifikasi import prediksi as model_prediksi
+    except ImportError:
+        return None
+    if not model_prediksi.model_tersedia():
+        return None
+    return model_prediksi.analisis_foto(daftar_foto, dir_unggahan)
+
+
 def analisis_foto(daftar_foto, properti_id=None):
     mulai = time.perf_counter()
     mode = _mode()
+    sumber = mode
     try:
         if mode == "remote":
             dir_unggahan = Path(current_app.config["DIR_UNGGAHAN"])
@@ -107,12 +122,20 @@ def analisis_foto(daftar_foto, properti_id=None):
             finally:
                 for _, (_, pegangan) in berkas:
                     pegangan.close()
+        elif mode == "asli":
+            hasil_model = _prediksi_model_lokal(daftar_foto, Path(current_app.config["DIR_UNGGAHAN"]))
+            if hasil_model is not None:
+                data = hasil_model
+            else:
+                sumber = "simulasi"
+                data = simulasi_ai.analisis_foto(daftar_foto)
         else:
+            sumber = "simulasi"
             data = simulasi_ai.analisis_foto(daftar_foto)
-        _catat(properti_id, "bangunan", "berhasil", mode, mulai)
-        return _bersihkan_temuan(data), mode
+        _catat(properti_id, "bangunan", "berhasil", sumber, mulai)
+        return _bersihkan_temuan(data), sumber
     except (requests.RequestException, ValueError) as e:
-        _catat(properti_id, "bangunan", "gagal", mode, mulai, str(e)[:300])
+        _catat(properti_id, "bangunan", "gagal", sumber, mulai, str(e)[:300])
         raise GalatAplikasi("Layanan analisis foto sedang tidak tersedia. Coba beberapa saat lagi.", 503)
 
 

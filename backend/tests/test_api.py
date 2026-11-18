@@ -208,3 +208,29 @@ def test_respons_ai_tidak_sesuai_kontrak_dibersihkan():
         {"jenis": "noda_lembap", "tingkat": "ringan", "luas_m2": "x"},
     ]})
     assert len(hasil["temuan"]) == 1 and hasil["temuan"][0]["kepercayaan"] == 1.0
+
+
+def test_model_klasifikasi_analisis_foto_asli(tmp_path):
+    from pathlib import Path
+    import sys
+
+    akar = str(Path(__file__).resolve().parents[2])
+    if akar not in sys.path:
+        sys.path.insert(0, akar)
+    from model_klasifikasi import prediksi
+
+    assert prediksi.model_tersedia() is True
+
+    app = buat_aplikasi({
+        "DATABASE_PATH": str(tmp_path / "uji_model.db"),
+        "DIR_UNGGAHAN": str(tmp_path / "unggahan"),
+        "AI_MODE": "asli",
+        "TESTING": True,
+    })
+    klien = app.test_client()
+    header = masuk(klien, "demo@homewise.id", "demo12345")
+    respon = klien.post("/api/properti/1/analisis-bangunan", headers=header)
+    assert respon.status_code == 200
+    bangunan = respon.json["data"]["bangunan"]
+    assert bangunan["sumber"] == "asli"
+    assert 0 <= bangunan["skor_kondisi"] <= 100

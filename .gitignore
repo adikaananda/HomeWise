@@ -7,4 +7,5 @@ backend/data/
 .pytest_cache/
 .venv/
 venv/
-
+model_klasifikasi/dataset/
+referensi

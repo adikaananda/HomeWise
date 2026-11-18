@@ -4,3 +4,4 @@ frontend/dist/
 backend/data/
 **/__pycache__/
 **/.env
+model_klasifikasi/dataset/

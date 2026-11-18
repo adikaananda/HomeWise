@@ -1,0 +1,146 @@
+{
+  "dataset": "BD3 Building Defects Detection Dataset (3.965 gambar asli)",
+  "ekstraktor": "MobileNetV2 (ImageNet weights, 1280 fitur) + CLAHE LAB",
+  "classifier": "XGBoost (XGBClassifier)",
+  "split": "80:20 stratified",
+  "jumlah_latih": 3172,
+  "jumlah_uji": 793,
+  "kelas": [
+    "algae",
+    "major_crack",
+    "minor_crack",
+    "peeling",
+    "plain",
+    "spalling",
+    "stain"
+  ],
+  "metrik": {
+    "akurasi": 0.8764,
+    "precision_makro": 0.8768,
+    "recall_sensitivitas_makro": 0.8752,
+    "spesifisitas_makro": 0.9794,
+    "f1_makro": 0.8757
+  },
+  "laporan_per_kelas": {
+    "algae": {
+      "precision": 0.9302325581395349,
+      "recall": 0.967741935483871,
+      "f1-score": 0.9486166007905138,
+      "support": 124.0
+    },
+    "major_crack": {
+      "precision": 0.7704918032786885,
+      "recall": 0.8103448275862069,
+      "f1-score": 0.7899159663865546,
+      "support": 116.0
+    },
+    "minor_crack": {
+      "precision": 0.8278688524590164,
+      "recall": 0.808,
+      "f1-score": 0.8178137651821862,
+      "support": 125.0
+    },
+    "peeling": {
+      "precision": 0.9038461538461539,
+      "recall": 0.9038461538461539,
+      "f1-score": 0.9038461538461539,
+      "support": 104.0
+    },
+    "plain": {
+      "precision": 0.9583333333333334,
+      "recall": 0.9583333333333334,
+      "f1-score": 0.9583333333333334,
+      "support": 120.0
+    },
+    "spalling": {
+      "precision": 0.9166666666666666,
+      "recall": 0.88,
+      "f1-score": 0.8979591836734694,
+      "support": 100.0
+    },
+    "stain": {
+      "precision": 0.83,
+      "recall": 0.7980769230769231,
+      "f1-score": 0.8137254901960784,
+      "support": 104.0
+    },
+    "accuracy": 0.8764186633039092,
+    "macro avg": {
+      "precision": 0.8767770525319134,
+      "recall": 0.875191881903784,
+      "f1-score": 0.8757443562011842,
+      "support": 793.0
+    },
+    "weighted avg": {
+      "precision": 0.8766660272555787,
+      "recall": 0.8764186633039092,
+      "f1-score": 0.8763036577482679,
+      "support": 793.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      120,
+      0,
+      0,
+      0,
+      0,
+      0,
+      4
+    ],
+    [
+      2,
+      94,
+      15,
+      1,
+      2,
+      2,
+      0
+    ],
+    [
+      0,
+      15,
+      101,
+      1,
+      3,
+      1,
+      4
+    ],
+    [
+      0,
+      4,
+      0,
+      94,
+      0,
+      2,
+      4
+    ],
+    [
+      0,
+      2,
+      0,
+      0,
+      115,
+      0,
+      3
+    ],
+    [
+      2,
+      5,
+      0,
+      3,
+      0,
+      88,
+      2
+    ],
+    [
+      5,
+      2,
+      6,
+      5,
+      0,
+      3,
+      83
+    ]
+  ]
+}
