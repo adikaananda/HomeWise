@@ -156,6 +156,14 @@ CREATE TABLE IF NOT EXISTS log_analisis (
     dibuat TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS cache_llm (
+    kunci TEXT PRIMARY KEY,
+    jenis TEXT NOT NULL,
+    model TEXT NOT NULL,
+    teks TEXT NOT NULL,
+    dibuat TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_properti_pengguna ON properti(pengguna_id);
 CREATE INDEX IF NOT EXISTS idx_pembayaran_pengguna ON pembayaran(pengguna_id);
 CREATE INDEX IF NOT EXISTS idx_inspeksi_status ON inspeksi(status);

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from .layanan.ahsp import MATERIAL_BAWAAN
 
-VERSI_TERBARU = 2
+VERSI_TERBARU = 3
 
 
 def _ada_tabel(koneksi, nama):
@@ -47,7 +47,19 @@ def _ke_versi_2(koneksi):
         """)
 
 
-MIGRASI = {2: _ke_versi_2}
+def _ke_versi_3(koneksi):
+    koneksi.execute("""
+        CREATE TABLE IF NOT EXISTS cache_llm (
+            kunci TEXT PRIMARY KEY,
+            jenis TEXT NOT NULL,
+            model TEXT NOT NULL,
+            teks TEXT NOT NULL,
+            dibuat TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    """)
+
+
+MIGRASI = {2: _ke_versi_2, 3: _ke_versi_3}
 
 
 def jalankan(jalur_db):

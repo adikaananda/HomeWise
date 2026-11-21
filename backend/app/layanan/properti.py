@@ -265,7 +265,7 @@ def detail_lengkap(properti, pengguna):
     inv = investasi.hitung_investasi(properti, estimasi["total"] if estimasi else 0)
     mendesak = next((p["jumlah"] for p in hasil["biaya"]["per_prioritas"] if p["kode"] == "mendesak"), 0) if hasil["biaya"] else 0
     inv["total_minimum"] = inv["harga_penawaran"] + inv["biaya_transaksi"] + mendesak
-    inv["ringkasan"] = ai_klien.susun_penjelasan("investasi", {"investasi": inv})
+    inv["ringkasan"] = ai_klien.susun_penjelasan("investasi", {"investasi": inv, "tujuan": properti["tujuan"]})
     hasil["investasi"] = inv
     return hasil
 

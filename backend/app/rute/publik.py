@@ -26,9 +26,12 @@ def kesehatan():
     mode_ai = current_app.config["AI_MODE"]
     if mode_ai == "remote" and not current_app.config["AI_BASE_URL"]:
         mode_ai = "simulasi"
+    llm_aktif = bool(current_app.config.get("OPENROUTER_API_KEY"))
     return sukses({
         "status": "sehat",
         "mode_ai": mode_ai,
+        "mode_llm": "openrouter" if llm_aktif else "statis",
+        "model_llm": current_app.config["OPENROUTER_MODEL"] if llm_aktif else None,
         "mode_pembayaran": midtrans.mode(),
     })
 

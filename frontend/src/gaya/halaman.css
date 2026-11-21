@@ -307,6 +307,7 @@
 }
 
 .ringkasan-atas__narasi {
+  margin: 0;
   color: var(--tinta-2);
   max-width: 70ch;
 }
@@ -341,8 +342,17 @@
 
 @media (min-width: 1100px) {
   .ringkasan-atas {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: minmax(340px, max-content) minmax(0, 1fr);
+    gap: 24px 32px;
     align-items: center;
+  }
+
+  .ringkasan-atas__skor {
+    flex-wrap: nowrap;
+  }
+
+  .ringkasan-atas__skor > .tumpuk {
+    min-width: 190px;
   }
 
   .ringkasan-atas__angka {

@@ -7,7 +7,7 @@ from flask import current_app
 
 from .. import db
 from ..respon import GalatAplikasi
-from . import lokasi_asli, penjelasan, simulasi_ai
+from . import llm_openrouter, lokasi_asli, penjelasan, simulasi_ai
 from .konstanta import JENIS_KERUSAKAN
 
 
@@ -145,6 +145,11 @@ def susun_penjelasan(jenis, konteks):
             return _post("/penjelasan", json={"jenis": jenis, "konteks": konteks}).get("teks")
         except requests.RequestException:
             current_app.logger.warning("Penjelasan LLM gagal, memakai templat bawaan.")
+
+    if llm_openrouter.aktif():
+        teks = llm_openrouter.susun_teks(jenis, konteks)
+        if teks:
+            return teks
 
     if jenis == "lokasi":
         return penjelasan.ringkasan_lokasi(konteks["hasil"], konteks["tujuan"])

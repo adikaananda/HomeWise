@@ -44,6 +44,15 @@ class Konfigurasi:
     AI_API_KEY = os.getenv("AI_API_KEY", "")
     AI_TIMEOUT_DETIK = int(os.getenv("AI_TIMEOUT_DETIK", "60"))
 
+    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
+    OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "inclusionai/ling-3.2-flash:free").strip()
+    OPENROUTER_FALLBACK_MODELS = [
+        m.strip() for m in os.getenv("OPENROUTER_FALLBACK_MODELS", "openrouter/free").split(",") if m.strip()
+    ]
+    OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
+    OPENROUTER_TIMEOUT_DETIK = int(os.getenv("OPENROUTER_TIMEOUT_DETIK", "25"))
+    OPENROUTER_REASONING = _bool("OPENROUTER_REASONING", False)
+
     MIDTRANS_SERVER_KEY = os.getenv("MIDTRANS_SERVER_KEY", "")
     MIDTRANS_CLIENT_KEY = os.getenv("MIDTRANS_CLIENT_KEY", "")
     MIDTRANS_PRODUCTION = _bool("MIDTRANS_PRODUCTION")
