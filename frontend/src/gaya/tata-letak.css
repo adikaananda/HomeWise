@@ -5,7 +5,7 @@
 }
 
 .logo__teks {
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
 }
@@ -31,22 +31,22 @@
   position: sticky;
   top: 0;
   z-index: 500;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: saturate(1.6) blur(14px);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid transparent;
   transition: border-color var(--cepat), box-shadow var(--cepat);
 }
 
 .navbar--tergulir {
   border-bottom-color: var(--garis);
-  box-shadow: 0 6px 24px -18px rgba(8, 50, 200, 0.4);
+  box-shadow: 0 8px 24px -22px rgba(23, 32, 51, 0.5);
 }
 
 .navbar__isi {
   display: flex;
   align-items: center;
   gap: 24px;
-  height: 72px;
+  height: 68px;
 }
 
 .navbar__menu {
@@ -59,7 +59,7 @@
   padding: 8px 14px;
   border-radius: var(--r-pil);
   color: var(--tinta-2);
-  font-weight: 600;
+  font-weight: 500;
   font-size: var(--teks-sm);
 }
 
@@ -176,13 +176,14 @@
 
 .aplikasi {
   min-height: 100vh;
+  background: var(--permukaan);
 }
 
 .sisi {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px 16px;
+  gap: 18px;
+  padding: 18px 14px;
   background: var(--putih);
   border-right: 1px solid var(--garis);
 }
@@ -209,7 +210,7 @@
   padding: 11px 12px;
   border-radius: var(--r-sm);
   color: var(--tinta-2);
-  font-weight: 600;
+  font-weight: 500;
   font-size: var(--teks-sm);
   transition: background var(--cepat), color var(--cepat);
 }
@@ -240,8 +241,8 @@
   align-items: center;
   gap: 10px;
   padding: 12px;
-  border-radius: var(--r-md);
-  background: var(--permukaan);
+  border-radius: var(--r-sm);
+  background: #f3f5f8;
 }
 
 .sisi__identitas {
@@ -350,7 +351,8 @@
 
 .aplikasi__konten {
   padding: 24px 16px calc(104px + env(safe-area-inset-bottom));
-  max-width: 1240px;
+  width: 100%;
+  max-width: 1320px;
 }
 
 .navbawah {
@@ -421,7 +423,7 @@
   }
 
   .aplikasi__konten {
-    padding: 36px 40px 64px;
+    padding: 32px 36px 64px;
   }
 }
 
@@ -431,11 +433,12 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 22px;
 }
 
 .kepala-halaman h1 {
   font-size: var(--teks-2xl);
+  font-weight: 650;
 }
 
 .kepala-halaman p {
@@ -459,6 +462,6 @@
 
 @media (min-width: 1024px) {
   .kepala-halaman h1 {
-    font-size: var(--teks-3xl);
+    font-size: 1.75rem;
   }
 }

@@ -22,7 +22,7 @@ export function FotoBertanda({ foto, temuan }) {
         {milikFoto.map((t, i) => (
           <div
             key={i}
-            className={`kotak-temuan ${t.tingkat ? `kotak-temuan--${t.tingkat}` : ""}`}
+            className="kotak-temuan"
             style={{
               left: `${t.kotak.x * 100}%`,
               top: `${t.kotak.y * 100}%`,
@@ -30,15 +30,8 @@ export function FotoBertanda({ foto, temuan }) {
               height: `${t.kotak.tinggi * 100}%`,
             }}
           >
-            <span
-              style={{
-                ...(t.kotak.x > 0.55 ? { left: "auto", right: 4 } : {}),
-                ...(t.kotak.y > 0.78 ? { top: "auto", bottom: 4 } : {}),
-              }}
-            >
-              {jenis[t.jenis] || t.jenis}
-              {t.tingkat ? ` · ${t.tingkat}` : ""}
-              {t.kepercayaan ? ` ${Math.round(t.kepercayaan * 100)}%` : ""}
+            <span>
+              {jenis[t.jenis] || t.jenis} {t.kepercayaan ? `${Math.round(t.kepercayaan * 100)}%` : ""}
             </span>
           </div>
         ))}

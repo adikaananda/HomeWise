@@ -65,7 +65,7 @@ export default function Dasbor() {
         }
       />
 
-      <div className="kisi-4" style={{ marginBottom: 24 }}>
+      <div className="kisi-4 statistik-panel">
         <Kartu rapat>
           <Statistik ikon={LuHouse} label="Properti dianalisis" nilai={statistik.total_properti} />
         </Kartu>

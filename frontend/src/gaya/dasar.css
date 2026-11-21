@@ -13,7 +13,7 @@ body {
   margin: 0;
   font-family: var(--font);
   font-size: var(--teks-md);
-  line-height: 1.6;
+  line-height: 1.55;
   color: var(--tinta);
   background: var(--permukaan);
   -webkit-font-smoothing: antialiased;
@@ -25,16 +25,16 @@ h2,
 h3,
 h4 {
   margin: 0;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
   color: var(--tinta);
   text-wrap: balance;
 }
 
-h1 { font-size: var(--teks-3xl); font-weight: 800; }
-h2 { font-size: var(--teks-2xl); font-weight: 800; }
-h3 { font-size: var(--teks-lg); font-weight: 700; }
-h4 { font-size: var(--teks-md); font-weight: 700; }
+h1 { font-size: var(--teks-3xl); font-weight: 650; }
+h2 { font-size: var(--teks-2xl); font-weight: 650; }
+h3 { font-size: var(--teks-lg); font-weight: 600; }
+h4 { font-size: var(--teks-md); font-weight: 600; }
 
 p {
   margin: 0;
@@ -114,7 +114,7 @@ button {
 }
 
 .tebal {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .baris {

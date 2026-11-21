@@ -1,21 +1,24 @@
 import { useMemo, useState } from "react";
 import {
   LuArrowRight,
+  LuBriefcase,
   LuBuilding2,
   LuCamera,
   LuCircleCheck,
   LuFileText,
   LuHouse,
+  LuKeyRound,
   LuLandmark,
   LuMapPin,
   LuSearch,
   LuShieldCheck,
   LuSparkles,
   LuStore,
+  LuUtensils,
 } from "react-icons/lu";
 import { IlustrasiBiaya, IlustrasiLaporan, IlustrasiPemindai, IlustrasiPeta, IlustrasiRumah } from "../../komponen/ilustrasi/Ilustrasi";
 import { TataLetakPublik } from "../../komponen/tata-letak/Publik";
-import { BatangSkor, CincinSkor, GambarDenganCadangan, Lencana, LencanaLevel, Segmen, Tombol } from "../../komponen/ui";
+import { BatangSkor, CincinSkor, GambarDenganCadangan, LencanaLevel, Segmen, Tombol } from "../../komponen/ui";
 import { GAMBAR } from "../../data/gambar";
 import { api } from "../../lib/api";
 import { jarak } from "../../lib/format";
@@ -35,6 +38,15 @@ const CONTOH_HASIL = {
   lokasi: "Bintaro, Tangerang Selatan",
   tujuan: "Rumah tinggal",
 };
+
+const TUJUAN_CEPAT = [
+  { kode: "rumah_tinggal", label: "Rumah tinggal", ikon: LuHouse },
+  { kode: "investasi_sewa", label: "Investasi sewa", ikon: LuKeyRound },
+  { kode: "ruko", label: "Ruko", ikon: LuStore },
+  { kode: "restoran", label: "Restoran", ikon: LuUtensils },
+  { kode: "kafe", label: "Kafe", ikon: LuSparkles },
+  { kode: "kantor", label: "Kantor", ikon: LuBriefcase },
+];
 
 function PanelPemindai({ hasil, memuat }) {
   return (
@@ -111,13 +123,10 @@ function Hero() {
     <section className="hero">
       <div className="wadah hero__isi">
         <div className="hero__teks">
-          <Lencana nada="lime" ikon={LuSparkles}>
-            Ringkasan lokasi gratis, tanpa perlu daftar
-          </Lencana>
-          <h1 className="hero__judul">Nilai lokasinya. Pahami bangunannya. Baru putuskan.</h1>
+          <span className="hero__eyebrow">Keputusan properti berbasis data</span>
+          <h1 className="hero__judul">Kenali properti sebelum Anda menawar.</h1>
           <p className="hero__deskripsi">
-            HomeWise menggabungkan risiko bencana, fasilitas sekitar, analisis foto bangunan, dan estimasi renovasi dalam satu laporan, sebelum Anda
-            menghabiskan waktu untuk survei.
+            Periksa lokasi, risiko lingkungan, kondisi bangunan, dan estimasi renovasi dalam satu alur yang mudah dipahami.
           </p>
 
           <form className="cek-cepat" onSubmit={kirim} noValidate>
@@ -160,6 +169,23 @@ function Hero() {
                 {l.label}
               </button>
             ))}
+          </div>
+          <div className="hero__tujuan">
+            <span className="hero__tujuan-label">Pilih tujuan analisis</span>
+            <div className="hero__tujuan-daftar">
+              {TUJUAN_CEPAT.map((item) => (
+                <button
+                  key={item.kode}
+                  type="button"
+                  className={kodeTujuan === item.kode ? "aktif" : ""}
+                  aria-pressed={kodeTujuan === item.kode}
+                  onClick={() => setKodeTujuan(item.kode)}
+                >
+                  <span><item.ikon aria-hidden="true" /></span>
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         <PanelPemindai hasil={hasil} memuat={memuat} />
