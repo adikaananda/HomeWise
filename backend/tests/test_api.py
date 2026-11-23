@@ -13,6 +13,7 @@ def klien(tmp_path):
         "DIR_UNGGAHAN": str(tmp_path / "unggahan"),
         "MIDTRANS_SERVER_KEY": "",
         "AI_MODE": "simulasi",
+        "OPENROUTER_API_KEY": "",
         "TESTING": True,
     })
     return app.test_client()
@@ -128,6 +129,7 @@ def test_notifikasi_midtrans_valid_membuka_laporan(tmp_path):
         "DATABASE_PATH": str(tmp_path / "uji.db"),
         "DIR_UNGGAHAN": str(tmp_path / "unggahan"),
         "MIDTRANS_SERVER_KEY": "SB-Mid-server-uji",
+        "OPENROUTER_API_KEY": "",
     })
     with app.app_context():
         db.simpan("pembayaran", {"order_id": "HW-UJI1", "pengguna_id": 3, "properti_id": 2,
@@ -225,6 +227,7 @@ def test_model_klasifikasi_analisis_foto_asli(tmp_path):
         "DATABASE_PATH": str(tmp_path / "uji_model.db"),
         "DIR_UNGGAHAN": str(tmp_path / "unggahan"),
         "AI_MODE": "asli",
+        "OPENROUTER_API_KEY": "",
         "TESTING": True,
     })
     klien = app.test_client()
@@ -234,3 +237,108 @@ def test_model_klasifikasi_analisis_foto_asli(tmp_path):
     bangunan = respon.json["data"]["bangunan"]
     assert bangunan["sumber"] == "asli"
     assert 0 <= bangunan["skor_kondisi"] <= 100
+
+
+def test_llm_openrouter_cache_dan_payload(tmp_path, monkeypatch):
+    from unittest.mock import MagicMock
+
+    import requests
+
+    from app.layanan import ai_klien
+
+    panggilan = []
+    teks_mock = "Total investasi awal Rp850 juta dengan biaya renovasi terkendali untuk hunian keluarga."
+
+    def palsu_post(url, json=None, headers=None, timeout=None):
+        panggilan.append({"url": url, "json": json, "headers": headers, "timeout": timeout})
+        resp = MagicMock()
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {
+            "choices": [{"message": {"content": '{"teks": "' + teks_mock + '"}'}}]
+        }
+        return resp
+
+    monkeypatch.setattr(requests, "post", palsu_post)
+
+    app = buat_aplikasi({
+        "DATABASE_PATH": str(tmp_path / "uji_llm.db"),
+        "DIR_UNGGAHAN": str(tmp_path / "unggahan"),
+        "AI_MODE": "simulasi",
+        "SEED_OTOMATIS": False,
+        "OPENROUTER_API_KEY": "sk-or-uji",
+        "OPENROUTER_MODEL": "inclusionai/ling-3.2-flash:free",
+        "OPENROUTER_REASONING": False,
+        "TESTING": True,
+    })
+    sehat = app.test_client().get("/api/kesehatan").json["data"]
+    assert sehat["mode_llm"] == "openrouter"
+    assert sehat["model_llm"] == "inclusionai/ling-3.2-flash:free"
+
+    konteks = {
+        "tujuan": "rumah_tinggal",
+        "investasi": {
+            "harga_penawaran": 800_000_000,
+            "renovasi": 25_000_000,
+            "biaya_transaksi": 25_000_000,
+            "total": 850_000_000,
+            "total_minimum": 830_000_000,
+            "rasio_renovasi_persen": 3.1,
+            "harga_per_m2": 8_000_000,
+            "total_per_m2": 8_500_000,
+        },
+    }
+    with app.app_context():
+        hasil_1 = ai_klien.susun_penjelasan("investasi", konteks)
+        hasil_2 = ai_klien.susun_penjelasan("investasi", konteks)
+
+    assert len(panggilan) == 1
+    assert panggilan[0]["json"]["model"] == "inclusionai/ling-3.2-flash:free"
+    assert panggilan[0]["json"]["models"] == ["inclusionai/ling-3.2-flash:free", "openrouter/free"]
+    assert panggilan[0]["json"]["reasoning"] == {"enabled": False}
+    assert hasil_1 == teks_mock
+    assert hasil_2 == teks_mock
+
+
+def test_llm_openrouter_fallback_statis(tmp_path, monkeypatch, klien):
+    from unittest.mock import MagicMock
+
+    import requests
+
+    from app.layanan import ai_klien, penjelasan
+
+    assert klien.get("/api/kesehatan").json["data"]["mode_llm"] == "statis"
+
+    inv = {
+        "harga_penawaran": 800_000_000,
+        "renovasi": 25_000_000,
+        "biaya_transaksi": 25_000_000,
+        "total": 850_000_000,
+        "rasio_renovasi_persen": 3.1,
+    }
+    harapan_statis = penjelasan.ringkasan_investasi(inv)
+
+    app = buat_aplikasi({
+        "DATABASE_PATH": str(tmp_path / "uji_llm_gagal.db"),
+        "DIR_UNGGAHAN": str(tmp_path / "unggahan"),
+        "AI_MODE": "simulasi",
+        "SEED_OTOMATIS": False,
+        "OPENROUTER_API_KEY": "sk-or-uji",
+        "TESTING": True,
+    })
+
+    def gagal_timeout(*args, **kwargs):
+        raise requests.Timeout("timeout")
+
+    monkeypatch.setattr(requests, "post", gagal_timeout)
+    with app.app_context():
+        assert ai_klien.susun_penjelasan("investasi", {"investasi": inv}) == harapan_statis
+
+    def balas_rusak(*args, **kwargs):
+        resp = MagicMock()
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": "bukan json"}}]}
+        return resp
+
+    monkeypatch.setattr(requests, "post", balas_rusak)
+    with app.app_context():
+        assert ai_klien.susun_penjelasan("investasi", {"investasi": inv}) == harapan_statis
