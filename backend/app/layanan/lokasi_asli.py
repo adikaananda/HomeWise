@@ -10,18 +10,9 @@ from . import simulasi_ai
 INARISK_BASE = "https://gis.bnpb.go.id/server/rest/services/inarisk"
 OVERPASS_URLS = [
     "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
 ]
-PHOTON_URL = "https://photon.komoot.io/api"
-KATA_KUNCI_PHOTON = [
-    ("rumah_sakit", "rumah sakit"),
-    ("klinik", "klinik puskesmas"),
-    ("sekolah", "sekolah sd smp sma"),
-    ("kampus", "universitas kampus"),
-    ("pasar", "pasar supermarket"),
-    ("perkantoran", "kantor"),
-    ("stasiun", "stasiun terminal"),
-    ("halte", "halte bus"),
-]
+PHOTON_REVERSE_URL = "https://photon.komoot.io/reverse"
 OPEN_METEO_ELEVATION_URL = "https://api.open-meteo.com/v1/elevation"
 HEADERS = {"User-Agent": "HomeWise/1.0 (Property Decision Support)"}
 
@@ -164,13 +155,13 @@ def _klasifikasi_poi(tags):
         return "sekolah"
     if amenity in ("university", "college"):
         return "kampus"
-    if amenity == "marketplace" or shop in ("supermarket", "mall"):
+    if amenity == "marketplace" or shop in ("supermarket", "mall", "department_store", "convenience"):
         return "pasar"
-    if "office" in tags:
+    if "office" in tags or amenity in ("bank", "public_building", "townhall"):
         return "perkantoran"
-    if railway in ("station", "halt") or amenity == "bus_station":
+    if railway in ("station", "halt") or amenity == "bus_station" or tags.get("public_transport") == "station":
         return "stasiun"
-    if highway == "bus_stop":
+    if highway == "bus_stop" or tags.get("public_transport") in ("platform", "stop_position"):
         return "halte"
     return None
 
@@ -317,30 +308,50 @@ def _kepadatan_dari(jarak_utama, jumlah_poi):
 
 
 def _ambil_osm_photon(lat, lng, radius_m=5000):
-    """Ambil POI dan estimasi jalan utama dari OpenStreetMap Photon API."""
-    delta = min(int(radius_m), 5000) / 111_320.0
-    bbox = f"{round(lng - delta, 5)},{round(lat - delta, 5)},{round(lng + delta, 5)},{round(lat + delta, 5)}"
+    """Ambil POI dan akses jalan berbasis tag OSM via Photon reverse API."""
+    max_rad_km = max(0.5, min(5.0, float(radius_m) / 1000.0))
 
-    def _cari(kw, limit=6):
+    def _reverse(rad_km, limit, tags_osm):
         respon = requests.get(
-            PHOTON_URL,
-            params={"q": kw, "lat": lat, "lon": lng, "bbox": bbox, "limit": limit},
+            PHOTON_REVERSE_URL,
+            params={"lat": lat, "lon": lng, "radius": round(rad_km, 2), "limit": limit, "osm_tag": tags_osm},
             headers=HEADERS,
             timeout=8,
         )
         respon.raise_for_status()
         return respon.json().get("features", [])
 
+    kueri_poi = [
+        (max_rad_km, 12, ["amenity:hospital", "amenity:clinic", "amenity:doctors"]),
+        (max_rad_km, 12, ["amenity:school", "amenity:kindergarten", "amenity:university", "amenity:college"]),
+        (min(3.0, max_rad_km), 15, [
+            "amenity:marketplace", "shop:supermarket", "shop:mall", "shop:department_store",
+            "shop:convenience", "office", "amenity:bank", "amenity:public_building", "amenity:townhall",
+        ]),
+        (max_rad_km, 12, [
+            "highway:bus_stop", "public_transport:platform", "public_transport:stop_position",
+            "amenity:bus_station", "public_transport:station", "railway:station", "railway:halt",
+        ]),
+    ]
+
     poi_unik = {}
     jarak_jalan_utama = []
+    jalan_depan = []
     jumlah_ekonomi = 0
     jumlah_hunian = 0
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = [(kat, executor.submit(_cari, kw, 6)) for kat, kw in KATA_KUNCI_PHOTON]
-        f_jalan = executor.submit(_cari, "jalan raya", 5)
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures_poi = [executor.submit(_reverse, rad, lim, tags_osm) for rad, lim, tags_osm in kueri_poi]
+        f_jalan_utama = executor.submit(
+            _reverse, min(2.0, max_rad_km), 10,
+            ["highway:trunk", "highway:primary", "highway:secondary", "highway:tertiary"],
+        )
+        f_jalan_depan = executor.submit(
+            _reverse, 0.2, 6,
+            [f"highway:{kls}" for kls in LEBAR_JALAN_BAWAAN],
+        )
 
-        for kategori, fut in futures:
+        for fut in futures_poi:
             try:
                 features = fut.result()
             except Exception:
@@ -350,16 +361,26 @@ def _ambil_osm_photon(lat, lng, radius_m=5000):
                 coords = (feat.get("geometry") or {}).get("coordinates") or []
                 if len(coords) < 2:
                     continue
-                el_lng, el_lat = float(coords[0]), float(coords[1])
                 osm_key, osm_val = props.get("osm_key"), props.get("osm_value")
-                if osm_key == "highway" and osm_val in ("residential", "service", "footway"):
+                if not osm_key:
                     continue
-                if kategori != "halte" and osm_val == "bus_stop":
+                tags = {osm_key: osm_val}
+                kategori = _klasifikasi_poi(tags)
+                if not kategori:
                     continue
                 nama = (props.get("name") or "").strip()
                 if not nama:
-                    continue
+                    if kategori != "halte":
+                        continue
+                    nama = "Halte Bus"
+                el_lng, el_lat = float(coords[0]), float(coords[1])
                 jarak = jarak_haversine_m(lat, lng, el_lat, el_lng)
+                if kategori == "halte" and jarak > 2500:
+                    continue
+                if tags.get("shop") == "convenience" and jarak > 1000:
+                    continue
+                if kategori in ("klinik", "sekolah", "pasar", "perkantoran") and jarak > 3000:
+                    continue
                 if jarak > radius_m:
                     continue
                 if kategori in ("pasar", "perkantoran"):
@@ -377,47 +398,76 @@ def _ambil_osm_photon(lat, lng, radius_m=5000):
                     }
 
         try:
-            for feat in f_jalan.result():
+            for feat in f_jalan_utama.result():
+                props = feat.get("properties") or {}
                 coords = (feat.get("geometry") or {}).get("coordinates") or []
-                if len(coords) >= 2:
+                if len(coords) >= 2 and props.get("osm_key") == "highway" and props.get("osm_value") in (
+                    "trunk", "primary", "secondary", "tertiary"
+                ):
                     jarak_jalan_utama.append(jarak_haversine_m(lat, lng, float(coords[1]), float(coords[0])))
         except Exception:
             pass
 
-    if not poi_unik:
+        try:
+            for feat in f_jalan_depan.result():
+                props = feat.get("properties") or {}
+                coords = (feat.get("geometry") or {}).get("coordinates") or []
+                if len(coords) >= 2 and props.get("osm_key") == "highway" and props.get("osm_value") in LEBAR_JALAN_BAWAAN:
+                    jarak = jarak_haversine_m(lat, lng, float(coords[1]), float(coords[0]))
+                    jalan_depan.append((jarak, props["osm_value"]))
+        except Exception:
+            pass
+
+    if not poi_unik and not jarak_jalan_utama:
         return None
 
     fasilitas = _saring_poi(poi_unik)
-    jarak_utama = min(jarak_jalan_utama) if jarak_jalan_utama else 800
+    jarak_utama = min(jarak_jalan_utama) if jarak_jalan_utama else 1200
+    if jalan_depan:
+        jalan_depan.sort(key=lambda j: j[0])
+        kelas_depan = jalan_depan[0][1]
+        lebar_depan, sumber_lebar = LEBAR_JALAN_BAWAAN[kelas_depan], "kelas_jalan"
+        label_kelas = LABEL_KELAS_JALAN.get(kelas_depan)
+    else:
+        lebar_depan, sumber_lebar, label_kelas = 5.0, "bawaan", None
+
     aksesibilitas = {
         "jarak_jalan_utama_m": jarak_utama,
-        "lebar_jalan_depan_m": 6.0 if jarak_utama <= 250 else 5.0,
-        "sumber_lebar_jalan": "bawaan",
-        "kelas_jalan_depan": None,
+        "lebar_jalan_depan_m": lebar_depan,
+        "sumber_lebar_jalan": sumber_lebar,
+        "kelas_jalan_depan": label_kelas,
         "kepadatan_lalu_lintas": _kepadatan_dari(jarak_utama, len(poi_unik)),
     }
     karakter_kawasan = _tentukan_karakter_kawasan(set(), jumlah_ekonomi, jumlah_hunian)
-    return fasilitas, aksesibilitas, karakter_kawasan, []
+    return (
+        fasilitas,
+        aksesibilitas,
+        karakter_kawasan,
+        ["Server Overpass OSM tidak merespons tepat waktu, fasilitas memakai pencarian cadangan Photon OSM."],
+        None,
+    )
 
 
 def ambil_osm(lat, lng, radius_m=5000):
     """Ambil daftar fasilitas, aksesibilitas jalan, dan karakter kawasan dari OpenStreetMap Overpass API / Photon."""
     r_jauh = min(int(radius_m), 5000)
     r_sedang = min(int(radius_m), 3000)
+    r_halte = min(int(radius_m), 2500)
     r_dekat = min(int(radius_m), 1500)
 
     query = f"""
-    [out:json][timeout:15];
+    [out:json][timeout:10];
     (
       nwr(around:{r_jauh},{lat},{lng})["amenity"="hospital"];
       nwr(around:{r_jauh},{lat},{lng})["amenity"~"^(university|college)$"];
       nwr(around:{r_jauh},{lat},{lng})["railway"~"^(station|halt)$"];
-      nwr(around:{r_sedang},{lat},{lng})["amenity"~"^(clinic|doctors|school|kindergarten|marketplace|bus_station)$"];
-      nwr(around:{r_sedang},{lat},{lng})["shop"~"^(supermarket|mall)$"];
+      nwr(around:{r_jauh},{lat},{lng})["public_transport"="station"];
+      nwr(around:{r_sedang},{lat},{lng})["amenity"~"^(clinic|doctors|school|kindergarten|marketplace|bus_station|bank|public_building|townhall)$"];
+      nwr(around:{r_sedang},{lat},{lng})["shop"~"^(supermarket|mall|department_store)$"];
+      nwr(around:1000,{lat},{lng})["shop"="convenience"];
       nwr(around:{r_sedang},{lat},{lng})["office"];
-      nwr(around:{r_dekat},{lat},{lng})["highway"="bus_stop"];
-      way(around:{r_dekat},{lat},{lng})["highway"~"^(trunk|primary|secondary)$"];
-      way(around:120,{lat},{lng})["highway"~"^(trunk|primary|secondary|tertiary|residential|living_street|unclassified|service)$"];
+      nwr(around:{r_halte},{lat},{lng})["highway"="bus_stop"];
+      nwr(around:{r_halte},{lat},{lng})["public_transport"~"^(platform|stop_position)$"];
       nwr(around:500,{lat},{lng})["landuse"~"^(residential|commercial|retail|industrial)$"];
       nwr(around:{r_sedang},{lat},{lng})["leisure"~"^(park|beach_resort)$"]["name"];
       nwr(around:{r_sedang},{lat},{lng})["tourism"~"^(attraction|theme_park|zoo|museum)$"]["name"];
@@ -427,14 +477,18 @@ def ambil_osm(lat, lng, radius_m=5000):
       nwr(around:500,{lat},{lng})["tourism"~"^(hotel|guest_house|hostel|motel|apartment|resort)$"];
     );
     out tags center qt;
-    way(around:600,{lat},{lng})["power"="line"];
+    (
+      way(around:{r_dekat},{lat},{lng})["highway"~"^(trunk|primary|secondary|tertiary)$"];
+      way(around:120,{lat},{lng})["highway"~"^(trunk|primary|secondary|tertiary|residential|living_street|unclassified|service)$"];
+      way(around:600,{lat},{lng})["power"="line"];
+    );
     out tags geom qt;
     """
 
     elemen = None
     for url in OVERPASS_URLS:
         try:
-            respon = requests.post(url, data={"data": query}, headers=HEADERS, timeout=8)
+            respon = requests.post(url, data={"data": query}, headers=HEADERS, timeout=(4, 10))
             respon.raise_for_status()
             elemen = respon.json().get("elements", [])
             break
@@ -472,12 +526,15 @@ def ambil_osm(lat, lng, radius_m=5000):
             continue
 
         highway = tags.get("highway")
-        if el.get("type") == "way" and highway and el_lat is not None:
-            jarak = jarak_haversine_m(lat, lng, el_lat, el_lng)
-            if highway in ("trunk", "primary", "secondary"):
-                jarak_jalan_utama.append(jarak)
-            if jarak <= 120:
-                jalan_depan.append((jarak, highway, tags))
+        if el.get("type") == "way" and highway:
+            jarak = _jarak_ke_garis_m(lat, lng, el.get("geometry"))
+            if jarak is None and el_lat is not None:
+                jarak = jarak_haversine_m(lat, lng, el_lat, el_lng)
+            if jarak is not None:
+                if highway in ("trunk", "primary", "secondary", "tertiary"):
+                    jarak_jalan_utama.append(jarak)
+                if jarak <= 120:
+                    jalan_depan.append((jarak, highway, tags))
 
         kategori = _klasifikasi_poi(tags)
         if kategori and el_lat is not None:

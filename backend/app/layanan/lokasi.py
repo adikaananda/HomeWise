@@ -27,7 +27,11 @@ def hitung_indikator(data):
         nilai = _skor_jarak(terdekat.get(kategori), info["jarak_ideal"])
         per_indikator.setdefault(info["indikator"], []).append(nilai)
     for indikator, daftar in per_indikator.items():
-        skor[indikator] = round(max(daftar) * 0.7 + min(daftar) * 0.3, 1)
+        if indikator == "transportasi" and terdekat.get("halte") is not None and terdekat.get("stasiun") is None:
+            skor_halte = _skor_jarak(terdekat["halte"], KATEGORI_FASILITAS["halte"]["jarak_ideal"])
+            skor[indikator] = round(skor_halte * 0.85 + 35.0 * 0.15, 1)
+        else:
+            skor[indikator] = round(max(daftar) * 0.7 + min(daftar) * 0.3, 1)
 
     akses = data["aksesibilitas"]
     skor_akses = _skor_jarak(akses["jarak_jalan_utama_m"], 500)

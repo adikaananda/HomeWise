@@ -48,7 +48,7 @@ KATEGORI_FASILITAS = {
     "pasar": {"label": "Pasar / pusat belanja", "indikator": "ekonomi", "jarak_ideal": 2000},
     "perkantoran": {"label": "Kawasan perkantoran", "indikator": "ekonomi", "jarak_ideal": 3000},
     "stasiun": {"label": "Stasiun / terminal", "indikator": "transportasi", "jarak_ideal": 3000},
-    "halte": {"label": "Halte bus", "indikator": "transportasi", "jarak_ideal": 800},
+    "halte": {"label": "Halte bus", "indikator": "transportasi", "jarak_ideal": 1200},
 }
 
 JENIS_KERUSAKAN = {

@@ -14,7 +14,7 @@ from .lokasi import BOBOT_RISIKO
 RADIUS_PENCARIAN = {
     "rumah_sakit": 5000, "kampus": 5000, "stasiun": 5000,
     "klinik": 3000, "sekolah": 3000, "pasar": 3000, "perkantoran": 3000,
-    "halte": 1500,
+    "halte": 2500,
 }
 
 PENJELASAN_INDIKATOR = {
@@ -24,7 +24,7 @@ PENJELASAN_INDIKATOR = {
     },
     "aksesibilitas": {
         "arti": "Kemudahan kendaraan mencapai properti: jarak ke jalan utama dan lebar jalan di depan properti.",
-        "cara": "Skor penuh bila jalan utama (arteri/kolektor) ≤ 250 m, turun bertahap bila lebih jauh. Ditambah poin bila jalan depan lebih lebar dari 4 m.",
+        "cara": "Skor penuh bila jalan utama (arteri/kolektor/lokal utama) ≤ 250 m, turun bertahap bila lebih jauh. Ditambah poin bila jalan depan lebih lebar dari 4 m.",
     },
     "kesehatan": {
         "arti": "Kedekatan dengan layanan kesehatan: rumah sakit dan klinik/puskesmas.",
@@ -42,7 +42,7 @@ PENJELASAN_INDIKATOR = {
     },
     "transportasi": {
         "arti": "Kedekatan dengan transportasi umum: stasiun/terminal dan halte bus.",
-        "cara": "Stasiun/terminal ideal ≤ 3 km, halte ideal ≤ 800 m. Skor = 70% kategori terbaik + 30% kategori terlemah.",
+        "cara": "Stasiun/terminal ideal ≤ 3 km, halte ideal ≤ 1,2 km. Skor = 70% kategori terbaik + 30% kategori terlemah (di kota tanpa kereta, halte lebih dominan).",
     },
 }
 
