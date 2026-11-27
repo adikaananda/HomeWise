@@ -18,7 +18,7 @@ const OBJEK_KOSONG = {};
 
 let janjiLeaflet = null;
 
-function muatLeaflet() {
+export function muatLeaflet() {
   if (window.L) return Promise.resolve(window.L);
   if (janjiLeaflet) return janjiLeaflet;
   janjiLeaflet = new Promise((selesai, gagal) => {

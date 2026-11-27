@@ -146,7 +146,7 @@ export function TabelTemuan({ temuan, foto = [] }) {
                 <td>
                   <LencanaLevel level={t.tingkat} />
                 </td>
-                <td className="kanan">{t.luas_m2} m²</td>
+                <td className="kanan">{t.luas_m2} m²{t.panjang_m ? <span className="teks-mini teks-redup" style={{ display: "block" }}>retak ±{t.panjang_m} m</span> : null}</td>
                 <td className="kanan">{t.kepercayaan ? `${Math.round(t.kepercayaan * 100)}%` : "–"}</td>
                 <td title={t.alasan_prioritas || undefined}>{t.prioritas ? <LencanaPrioritas kode={t.prioritas} /> : "–"}</td>
                 <td>

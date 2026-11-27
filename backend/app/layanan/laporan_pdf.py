@@ -177,7 +177,7 @@ def buat_pdf(detail, nomor, tanggal):
                 [["Temuan", "Area", "Tingkat", "Luas", "Prioritas"]] + [
                     [JENIS_KERUSAKAN[t["jenis"]] + (" *" if t.get("sumber_foto") == "iklan" else ""),
                      label_area.get(t.get("area"), "-"),
-                     _berwarna(t["tingkat"].title(), t["tingkat"]), f"{t['luas_m2']} m²",
+                     _berwarna(t["tingkat"].title(), t["tingkat"]), f"{t['luas_m2']} m²" + (f" (retak {t['panjang_m']} m)" if t.get("panjang_m") else ""),
                      _berwarna(PRIORITAS[t["prioritas"]]["label"], t["prioritas"])]
                     for t in aktif
                 ],
@@ -197,7 +197,8 @@ def buat_pdf(detail, nomor, tanggal):
         isi.append(_p("Estimasi biaya renovasi", "h2"))
         isi.append(_tabel(
             [["Pekerjaan", "Prioritas", "Volume", "Harga satuan", "Jumlah"]] + [
-                [i["pekerjaan"], PRIORITAS[i.get("prioritas", "disarankan")]["label"], f"{i['volume']} {i['satuan'].replace('m2', 'm²')}",
+                [_p(f"<b>{i['pekerjaan']}</b><br/><font size=7>{i.get('keterangan', '')}</font>", "kecil") if i.get("keterangan") else i["pekerjaan"],
+                 PRIORITAS[i.get("prioritas", "disarankan")]["label"], f"{i['volume']} {i['satuan'].replace('m2', 'm²')}",
                  rupiah(i["harga_satuan"]), rupiah(i["jumlah"])] for i in biaya["item"]
             ] + [
                 ["Subtotal", "", "", "", rupiah(biaya["subtotal"])],
@@ -207,6 +208,8 @@ def buat_pdf(detail, nomor, tanggal):
             [58 * mm, 24 * mm, 25 * mm, 30 * mm, 33 * mm], rata_kanan=(2, 3, 4),
         ))
         isi.append(_p(f"Rentang wajar {rupiah(biaya['rentang_min'])} – {rupiah(biaya['rentang_maks'])}.", "kecil"))
+        for m in (biaya.get("asumsi") or {}).get("metode_volume", []):
+            isi.append(_p(f"• {m}", "kecil"))
 
         if biaya.get("material"):
             isi.append(_p("Perkiraan kebutuhan material", "h2"))
@@ -231,6 +234,31 @@ def buat_pdf(detail, nomor, tanggal):
             [120 * mm, 50 * mm], rata_kanan=(1,),
         ))
         isi.append(_p(inv["asumsi"], "kecil"))
+
+    pn = detail.get("penilaian")
+    if pn:
+        isi.append(_p("Faktor yang memengaruhi nilai rumah", "h2"))
+        isi.append(_p(
+            f"Model: {pn['sumber']['penulis']}, <i>{pn['sumber']['judul']}</i>, {pn['sumber']['terbitan']}. "
+            f"Kelengkapan data {pn['kelengkapan']['terisi']}/{pn['kelengkapan']['total']} faktor. {pn['cakupan']}", "isi"))
+        isi.append(Spacer(1, 4))
+        isi.append(_tabel(
+            [["Peringkat", "Kelompok", "Eigenvalue", "Pengaruh pada nilai model"]]
+            + [[str(k["peringkat"]), k["label"], f"{k['eigen']:.3f}".replace(".", ","),
+                ("+" if k["kontribusi"] >= 0 else "−") + rupiah(abs(k["kontribusi"]))] for k in pn["kelompok"]],
+            [22 * mm, 60 * mm, 28 * mm, 60 * mm], rata_kanan=(2, 3),
+        ))
+        status = {"ya": "Ya", "tidak": "Tidak", "belum_diketahui": "Belum diketahui"}
+        isi.append(Spacer(1, 4))
+        isi.append(_tabel(
+            [["Faktor dominan", "Arah", "Properti ini", "Keterangan"]]
+            + [[s_["faktor"], "Menaikkan" if s_["arah"] == "positif" else "Menurunkan", status[s_["status"]], _p(s_["keterangan"], "kecil")]
+               for s_ in pn["sorotan"]],
+            [52 * mm, 24 * mm, 26 * mm, 68 * mm],
+        ))
+        isi.append(_p(
+            f"Nilai model (harga 2013): {rupiah(pn['nilai_model_2013'])}, rentang ±5,06%. Dipakai untuk melihat arah "
+            "pengaruh faktor, bukan sebagai harga pasar hari ini.", "kecil"))
 
     if detail["rekomendasi"]:
         isi.append(_p("Rekomendasi pemeriksaan lanjutan", "h2"))

@@ -9,6 +9,7 @@ const MENU = [
   { ke: "/#fitur", label: "Fitur" },
   { ke: "/#cara-kerja", label: "Cara kerja" },
   { ke: "/#tujuan", label: "Analisis per tujuan" },
+  { ke: "/peta-harga", label: "Peta Harga Tanah" },
   { ke: "/harga", label: "Harga" },
 ];
 
@@ -111,6 +112,7 @@ export function KakiPublik() {
           <a href="/#fitur">Location intelligence</a>
           <a href="/#fitur">Analisis kondisi bangunan</a>
           <a href="/#fitur">Estimasi renovasi</a>
+          <Tautan ke="/peta-harga">Peta harga tanah</Tautan>
           <Tautan ke="/harga">Harga</Tautan>
         </div>
         <div>

@@ -59,3 +59,7 @@ class Konfigurasi:
 
     INDEKS_HARGA_WILAYAH = float(os.getenv("INDEKS_HARGA_WILAYAH", "1.0"))
     SEED_OTOMATIS = _bool("SEED_OTOMATIS", True)
+
+    HARGA_TANAH_API_URL = os.getenv("HARGA_TANAH_API_URL", "").strip()
+    HARGA_TANAH_API_KEY = os.getenv("HARGA_TANAH_API_KEY", "").strip()
+    HARGA_TANAH_CACHE_JAM = int(os.getenv("HARGA_TANAH_CACHE_JAM", "6"))

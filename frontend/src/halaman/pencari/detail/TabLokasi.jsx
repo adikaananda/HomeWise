@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { LuCircleCheck, LuCircleHelp, LuMountain, LuRoute, LuTriangleAlert, LuWaves } from "react-icons/lu";
+import { LuCircleCheck, LuCircleHelp, LuDatabase, LuMountain, LuRoute, LuTriangleAlert, LuWaves } from "react-icons/lu";
 import { Peta, WARNA_INDIKATOR } from "../../../komponen/Peta";
 import { BatangSkor, Kartu, LencanaLevel, Pemberitahuan } from "../../../komponen/ui";
 import { jarak } from "../../../lib/format";
@@ -33,7 +33,7 @@ export function TabLokasi({ detail }) {
 
   if (!lokasi) return <Pemberitahuan nada="peringatan">Analisis lokasi belum tersedia. Jalankan ulang analisis dari menu di atas.</Pemberitahuan>;
 
-  const { data, hasil } = lokasi;
+  const { data, hasil, rincian } = lokasi;
   const legenda = Object.entries(WARNA_INDIKATOR);
 
   return (
@@ -56,11 +56,30 @@ export function TabLokasi({ detail }) {
           </div>
         </Kartu>
 
-        <Kartu judul="Indikator kelayakan" sub="Bobot mengikuti tujuan pembelian yang dipilih.">
+        <Kartu judul="Indikator kelayakan" sub="Bobot mengikuti tujuan pembelian. Klik indikator untuk melihat arti dan dasar perhitungannya.">
           <div className="tumpuk" style={{ gap: 14 }}>
-            {hasil.indikator.map((i) => (
-              <BatangSkor key={i.kode} label={i.label} skor={i.skor} keterangan={`bobot ${Math.round(i.bobot * 100)}%`} />
-            ))}
+            {hasil.indikator.map((i) => {
+              const info = rincian?.indikator?.[i.kode];
+              return (
+                <div key={i.kode}>
+                  <BatangSkor label={i.label} skor={i.skor} keterangan={`bobot ${Math.round(i.bobot * 100)}%`} />
+                  {info && (
+                    <details className="indikator-rinci">
+                      <summary>Apa artinya & dari mana angkanya?</summary>
+                      <p>{info.arti}</p>
+                      {info.dasar.length > 0 && (
+                        <ul>
+                          {info.dasar.map((d) => (
+                            <li key={d}>{d}</li>
+                          ))}
+                        </ul>
+                      )}
+                      <p className="teks-mini teks-redup">Cara hitung: {info.cara}</p>
+                    </details>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </Kartu>
       </div>
@@ -86,21 +105,34 @@ export function TabLokasi({ detail }) {
       </div>
 
       <div className="kisi-2" style={{ alignItems: "start" }}>
-        <Kartu judul="Topografi & akses" rapat>
-          <dl className="daftar-definisi">
-            <dt>Elevasi</dt>
-            <dd>{data.topografi.elevasi_m} mdpl</dd>
-            <dt>Kemiringan lahan</dt>
-            <dd>{data.topografi.kemiringan_persen}%</dd>
-            <dt>Jarak ke jalan utama</dt>
-            <dd>{jarak(data.aksesibilitas.jarak_jalan_utama_m)}</dd>
-            <dt>Lebar jalan depan</dt>
-            <dd>{data.aksesibilitas.lebar_jalan_depan_m} m</dd>
-            <dt>Kepadatan lalu lintas</dt>
-            <dd style={{ textTransform: "capitalize" }}>{data.aksesibilitas.kepadatan_lalu_lintas}</dd>
-            <dt>Karakter kawasan</dt>
-            <dd>{data.karakter_kawasan}</dd>
-          </dl>
+        <Kartu judul="Topografi & akses" sub="Kondisi tanah dan jalan di sekitar titik properti, beserta artinya." rapat>
+          {rincian ? (
+            <ul className="topo-akses">
+              {rincian.topografi_akses.map((r) => (
+                <li key={r.label}>
+                  <div className="topo-akses__atas">
+                    <span>{r.label}</span>
+                    <strong>{r.nilai}</strong>
+                  </div>
+                  <p className="teks-mini">{r.interpretasi}</p>
+                  <p className="teks-mini teks-redup">
+                    {r.arti} Sumber: {r.sumber}.
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <dl className="daftar-definisi">
+              <dt>Elevasi</dt>
+              <dd>{data.topografi.elevasi_m} mdpl</dd>
+              <dt>Kemiringan lahan</dt>
+              <dd>{data.topografi.kemiringan_persen}%</dd>
+              <dt>Jarak ke jalan utama</dt>
+              <dd>{jarak(data.aksesibilitas.jarak_jalan_utama_m)}</dd>
+              <dt>Lebar jalan depan</dt>
+              <dd>{data.aksesibilitas.lebar_jalan_depan_m} m</dd>
+            </dl>
+          )}
         </Kartu>
         <Kartu judul="Fasilitas terdekat" rapat>
           <ul className="daftar-sederhana">
@@ -120,6 +152,44 @@ export function TabLokasi({ detail }) {
         </Kartu>
       </div>
 
+      {rincian && (
+        <Kartu
+          judul="Fasilitas per kategori"
+          sub={`${rincian.jumlah_fasilitas.dalam_1km} fasilitas dalam 1 km dan ${rincian.jumlah_fasilitas.dalam_3km} dalam 3 km. Jarak dihitung garis lurus dari titik properti.`}
+          rapat
+        >
+          <div className="tabel-wadah">
+            <table className="tabel">
+              <thead>
+                <tr>
+                  <th>Kategori</th>
+                  <th>Terdekat</th>
+                  <th className="kanan">Jarak</th>
+                  <th className="kanan">Ideal</th>
+                  <th className="kanan">Ditemukan</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rincian.fasilitas_per_kategori.map((f) => (
+                  <tr key={f.kategori}>
+                    <td>
+                      <strong className="teks-kecil">{f.label}</strong>
+                      <div className="teks-mini teks-redup">{f.label_indikator}</div>
+                    </td>
+                    <td className="teks-kecil">{f.terdekat_nama || "–"}</td>
+                    <td className="kanan angka">{f.terdekat_m != null ? jarak(f.terdekat_m) : "–"}</td>
+                    <td className="kanan angka">≤ {jarak(f.jarak_ideal_m)}</td>
+                    <td className="kanan angka">{f.jumlah}</td>
+                    <td className="teks-mini">{f.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Kartu>
+      )}
+
       <div className="kisi-3">
         <DaftarPoin
           judul="Faktor pendukung"
@@ -137,6 +207,24 @@ export function TabLokasi({ detail }) {
         />
         <DaftarPoin judul="Perlu diverifikasi" ikon={LuCircleHelp} warna="var(--biru)" item={hasil.perlu_verifikasi} kosong="-" />
       </div>
+
+      {rincian && (
+        <Kartu judul="Sumber data" sub="Data yang dipakai untuk analisis lokasi ini, beserta cakupan dan keterbatasannya." rapat>
+          <ul className="sumber-data">
+            {rincian.sumber_data.map((d) => (
+              <li key={d.nama}>
+                <LuDatabase aria-hidden="true" />
+                <div>
+                  <strong className="teks-kecil">{d.nama}</strong>
+                  <span className="teks-mini teks-redup">{`${d.penyedia} · ${d.cakupan}`}</span>
+                  <span className="teks-mini">Dipakai untuk: {d.dipakai_untuk}</span>
+                  <span className="teks-mini teks-redup">{d.catatan}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Kartu>
+      )}
 
       <Pemberitahuan judul="Keterbatasan data">{hasil.keterbatasan_data.join(" ")}</Pemberitahuan>
     </div>

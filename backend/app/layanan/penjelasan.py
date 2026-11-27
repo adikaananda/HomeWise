@@ -84,5 +84,31 @@ def rekomendasi(hasil_lokasi, temuan, punya_inspeksi, survei=None, kelengkapan=N
     return daftar
 
 
+def rekomendasi_spesifikasi(properti, biaya_mendesak=0):
+    """Saran tambahan dari data spesifikasi yang diisi pengguna saat input properti."""
+    spek = properti.get("spesifikasi") or {}
+    daftar = []
+    if spek.get("kondisi_penjual") == "siap_huni" and biaya_mendesak > 0:
+        daftar.append(
+            f"Penjual menyebut properti siap huni, tetapi ada perbaikan mendesak sekitar {_rupiah(biaya_mendesak)}. "
+            "Tunjukkan temuan ini saat menawar."
+        )
+    if spek.get("status_harga") == "nett":
+        daftar.append("Harga disebut nett (tidak bisa ditawar). Pastikan siapa yang menanggung BPHTB, PPh penjual, dan biaya notaris.")
+    tahun_bangun = properti.get("tahun_bangun")
+    renovasi = spek.get("tahun_renovasi_terakhir") or tahun_bangun
+    if tahun_bangun and renovasi and renovasi <= 2026 - 15:
+        daftar.append(
+            f"Bangunan berumur {2026 - tahun_bangun} tahun dan belum direnovasi sejak {renovasi}. "
+            "Periksa instalasi listrik, pipa air, dan rangka atap yang tidak terlihat di foto."
+        )
+    lebar = spek.get("lebar_depan_m")
+    if lebar and lebar < 5 and properti.get("tujuan") in ("restoran", "kafe", "ruko"):
+        daftar.append(f"Lebar muka bangunan {lebar:g} m tergolong sempit untuk usaha. Pertimbangkan visibilitas papan nama dan area parkir.")
+    if spek.get("kapasitas_parkir_mobil") == 0 and properti.get("tujuan") in ("restoran", "kafe", "ruko", "kantor"):
+        daftar.append("Tidak ada parkir mobil di lahan. Cek ketersediaan parkir di jalan atau lahan sekitar untuk pengunjung.")
+    return daftar
+
+
 def label_indikator(kode):
     return INDIKATOR.get(kode, kode)

@@ -70,10 +70,22 @@ def analisis_lokasi(lat, lng, alamat=None, radius_m=5000):
         "aksesibilitas": {
             "jarak_jalan_utama_m": int(acak.uniform(40, 1400)),
             "lebar_jalan_depan_m": round(acak.uniform(3, 12), 1),
+            "sumber_lebar_jalan": "simulasi",
+            "kelas_jalan_depan": acak.choice(["jalan lingkungan/perumahan", "jalan lokal", "jalan kolektor"]),
             "kepadatan_lalu_lintas": acak.choice(["rendah", "sedang", "tinggi"]),
         },
         "fasilitas": fasilitas,
         "karakter_kawasan": acak.choice(["Permukiman padat", "Permukiman menengah", "Campuran hunian-komersial", "Koridor komersial"]),
+        "faktor_sekitar": {
+            "rekreasi_m": int(acak.uniform(300, 4500)),
+            "rekreasi_nama": acak.choice(["Taman Kota", "Lapangan Kota", "Pantai Terdekat", "Taman Rekreasi"]),
+            "sutet_m": int(acak.uniform(150, 2500)) if acak.random() < 0.25 else None,
+            "sutet_nama": "Saluran udara tegangan tinggi (simulasi)",
+            "kuburan_m": int(acak.uniform(120, 900)) if acak.random() < 0.5 else None,
+            "industri_m": int(acak.uniform(300, 900)) if acak.random() < 0.15 else None,
+            "akomodasi_500m": acak.randint(0, 6),
+            "sumber": "Simulasi HomeWise",
+        },
         "keterbatasan_data": [
             "Data risiko bencana berbasis indeks wilayah, belum mencerminkan kondisi per bidang tanah.",
             "Daftar fasilitas berasal dari data terbuka dan bisa belum memuat fasilitas terbaru.",
@@ -81,14 +93,17 @@ def analisis_lokasi(lat, lng, alamat=None, radius_m=5000):
     }
 
 
+# Rentang luas kerusakan yang realistis untuk satu foto (bukan luas seluruh rumah).
+# Untuk retak, rentangnya adalah panjang garis retak (m); luas dihitung panjang × lebar jalur.
 KATALOG_TEMUAN = [
-    ("retak_dinding", (1.0, 8.0)),
-    ("cat_mengelupas", (3.0, 20.0)),
-    ("noda_lembap", (1.5, 10.0)),
-    ("kerusakan_plafon", (2.0, 12.0)),
-    ("keramik_rusak", (1.0, 6.0)),
-    ("atap_bocor", (2.0, 10.0)),
+    ("retak_dinding", (0.5, 3.0)),
+    ("cat_mengelupas", (0.5, 3.0)),
+    ("noda_lembap", (0.4, 2.5)),
+    ("kerusakan_plafon", (0.5, 3.0)),
+    ("keramik_rusak", (0.4, 2.0)),
+    ("atap_bocor", (0.5, 4.0)),
 ]
+LEBAR_JALUR_RETAK = {"ringan": 0.15, "sedang": 0.30, "berat": 0.50}
 
 
 def analisis_foto(daftar_foto):
@@ -97,11 +112,15 @@ def analisis_foto(daftar_foto):
         acak = _rng(foto["sidik"])
         for jenis, (luas_min, luas_maks) in acak.sample(KATALOG_TEMUAN, acak.randint(1, 3)):
             x, y = round(acak.uniform(0.05, 0.6), 3), round(acak.uniform(0.05, 0.6), 3)
+            tingkat = acak.choices(["ringan", "sedang", "berat"], weights=[5, 3, 1])[0]
+            ukuran = round(acak.uniform(luas_min, luas_maks), 1)
+            panjang = ukuran if jenis == "retak_dinding" else None
             temuan.append({
                 "jenis": jenis,
-                "tingkat": acak.choices(["ringan", "sedang", "berat"], weights=[5, 3, 1])[0],
+                "tingkat": tingkat,
                 "kepercayaan": round(acak.uniform(0.62, 0.96), 2),
-                "luas_m2": round(acak.uniform(luas_min, luas_maks), 1),
+                "luas_m2": round(panjang * LEBAR_JALUR_RETAK[tingkat], 2) if panjang else ukuran,
+                "panjang_m": panjang,
                 "foto_id": foto["id"],
                 "kotak": {"x": x, "y": y, "lebar": round(acak.uniform(0.15, 0.35), 3), "tinggi": round(acak.uniform(0.15, 0.35), 3)},
             })

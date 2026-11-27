@@ -4,7 +4,7 @@ from pathlib import Path
 
 from .layanan.ahsp import MATERIAL_BAWAAN
 
-VERSI_TERBARU = 5
+VERSI_TERBARU = 7
 
 
 def _ada_tabel(koneksi, nama):
@@ -101,7 +101,33 @@ def _ke_versi_5(koneksi):
         koneksi.execute("ALTER TABLE pengajuan_kpr ADD COLUMN kode_rujukan TEXT")
 
 
-MIGRASI = {2: _ke_versi_2, 3: _ke_versi_3, 4: _ke_versi_4, 5: _ke_versi_5}
+def _ke_versi_6(koneksi):
+    teks = (Path(__file__).parent / "skema.sql").read_text(encoding="utf-8")
+    awal = teks.index("CREATE TABLE IF NOT EXISTS wilayah_harga_tanah")
+    koneksi.executescript(teks[awal:])
+
+
+def _ke_versi_7(koneksi):
+    if "spesifikasi" not in _kolom(koneksi, "properti"):
+        koneksi.execute("ALTER TABLE properti ADD COLUMN spesifikasi TEXT")
+
+    # Masukan pakar: "Plester tipis" dan "plester ulang" muncul berulang untuk dinding yang sama.
+    # Bobok + plester + acian kini satu paket; acian berdiri sendiri hanya bila plester tidak dibongkar.
+    koneksi.execute(
+        "UPDATE harga_referensi SET nama = 'Acian ulang dinding (tanpa bongkar plester)' WHERE kode = 'acian_dinding'"
+    )
+    koneksi.execute(
+        "UPDATE harga_referensi SET nama = 'Bongkar plester rusak, plester ulang & acian' WHERE kode = 'bobok_plester'"
+    )
+    # Harga dan material hanya diubah bila admin belum mengubah nilai bawaan lama.
+    koneksi.execute(
+        """UPDATE harga_referensi SET harga_material = 73000, harga_upah = 90000, material = ?
+           WHERE kode = 'bobok_plester' AND harga_material = 55000 AND harga_upah = 60000""",
+        (json.dumps(MATERIAL_BAWAAN["bobok_plester"], ensure_ascii=False),),
+    )
+
+
+MIGRASI = {2: _ke_versi_2, 3: _ke_versi_3, 4: _ke_versi_4, 5: _ke_versi_5, 6: _ke_versi_6, 7: _ke_versi_7}
 
 
 def jalankan(jalur_db):

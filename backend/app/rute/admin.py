@@ -2,8 +2,9 @@ from flask import Blueprint, request
 
 from .. import db
 from ..keamanan import pengguna_aktif, profil_publik, wajib_login
+from ..layanan import harga_tanah
 from ..respon import GalatAplikasi, sukses
-from ..validasi import SkemaHargaReferensi, SkemaUbahHargaReferensi, SkemaUbahPengguna, SkemaUbahSumberData, baca_json
+from ..validasi import SkemaHargaReferensi, SkemaHargaTanah, SkemaUbahHargaReferensi, SkemaUbahPengguna, SkemaUbahSumberData, baca_json
 
 bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
@@ -107,6 +108,25 @@ def ubah_sumber(sumber_id):
         perubahan.setdefault("status", "aktif")
     db.perbarui("sumber_data", sumber_id, perubahan)
     return sukses(db.satu("SELECT * FROM sumber_data WHERE id = ?", (sumber_id,)))
+
+
+@bp.get("/harga-tanah")
+@wajib_login("admin")
+def daftar_harga_tanah():
+    harga_tanah.pastikan_data_awal()
+    return sukses(db.banyak(
+        """SELECT h.*, w.nama, w.kecamatan, w.kabupaten FROM harga_tanah h
+           JOIN wilayah_harga_tanah w ON w.kode = h.wilayah_kode ORDER BY w.nama, h.periode DESC"""
+    ))
+
+
+@bp.post("/harga-tanah")
+@wajib_login("admin")
+def simpan_harga_tanah():
+    data = baca_json(SkemaHargaTanah)
+    harga_tanah.pastikan_data_awal()
+    harga_tanah.simpan_snapshot(data.model_dump())
+    return sukses(pesan="Data harga tanah disimpan.", status=201)
 
 
 @bp.get("/laporan")

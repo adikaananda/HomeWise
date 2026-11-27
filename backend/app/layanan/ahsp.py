@@ -3,7 +3,8 @@ MATERIAL_BAWAAN = {
         {"nama": "Semen PC", "satuan": "kg", "koefisien": 3.25, "kemasan": "sak 40 kg", "isi_kemasan": 40},
     ],
     "bobok_plester": [
-        {"nama": "Semen PC", "satuan": "kg", "koefisien": 6.24, "kemasan": "sak 40 kg", "isi_kemasan": 40},
+        # Plester 1:4 tebal 15 mm (6,24 kg semen/m²) + acian (3,25 kg semen/m²) dalam satu paket pekerjaan.
+        {"nama": "Semen PC", "satuan": "kg", "koefisien": 9.49, "kemasan": "sak 40 kg", "isi_kemasan": 40},
         {"nama": "Pasir pasang", "satuan": "m3", "koefisien": 0.024, "kemasan": "karung (±0,025 m³)", "isi_kemasan": 0.025},
     ],
     "cat_dinding": [

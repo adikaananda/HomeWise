@@ -6,7 +6,7 @@ from flask import current_app
 
 from .. import db
 from ..respon import GalatAplikasi
-from . import ai_klien, biaya, investasi, lokasi, penjelasan
+from . import ai_klien, biaya, investasi, lokasi, lokasi_rinci, penilaian_nilai, penjelasan
 from .konstanta import ALASAN_PRIORITAS, AREA_FOTO, PENALTI_TINGKAT, tentukan_prioritas
 
 KOLOM_JSON_LOKASI = ("data_mentah", "hasil")
@@ -198,10 +198,17 @@ def tentukan_tahap(properti, jumlah_foto, bangunan, inspeksi):
     return {"kode": kode, "label": TAHAP[indeks]["label"], "urutan": indeks, "langkah": langkah, "semua": TAHAP}
 
 
+def urai_kolom_json(properti):
+    hasil = dict(properti)
+    for kolom in ("data_survei", "spesifikasi"):
+        if isinstance(hasil.get(kolom), str):
+            hasil[kolom] = json.loads(hasil[kolom])
+    return hasil
+
+
 def detail_lengkap(properti, pengguna):
     premium = punya_akses_premium(properti, pengguna)
-    if isinstance(properti.get("data_survei"), str):
-        properti = {**properti, "data_survei": json.loads(properti["data_survei"])}
+    properti = urai_kolom_json(properti)
     lok = db.satu("SELECT * FROM analisis_lokasi WHERE properti_id = ?", (properti["id"],), KOLOM_JSON_LOKASI)
     foto = ambil_foto(properti["id"])
     bangunan = db.satu("SELECT * FROM analisis_bangunan WHERE properti_id = ?", (properti["id"],), ("temuan",))
@@ -213,7 +220,13 @@ def detail_lengkap(properti, pengguna):
 
     lokasi_data = None
     if lok:
-        lokasi_data = {"data": lok["data_mentah"], "hasil": lok["hasil"], "sumber": lok["sumber"], "dibuat": lok["dibuat"]}
+        lokasi_data = {
+            "data": lok["data_mentah"],
+            "hasil": lok["hasil"],
+            "rincian": lokasi_rinci.rincian_lokasi(lok["data_mentah"]),
+            "sumber": lok["sumber"],
+            "dibuat": lok["dibuat"],
+        }
 
     kelengkapan = kelengkapan_survei(foto)
     survei = properti.get("data_survei") or {"jawaban": {}, "diperbarui": None}
@@ -234,6 +247,7 @@ def detail_lengkap(properti, pengguna):
         "biaya": None,
         "investasi": None,
         "rekomendasi": [],
+        "penilaian": penilaian_nilai.hitung_penilaian(properti, lok["data_mentah"] if lok else None, bangunan),
     }
 
     if not premium:
@@ -272,6 +286,7 @@ def detail_lengkap(properti, pengguna):
     inv["total_minimum"] = inv["harga_penawaran"] + inv["biaya_transaksi"] + mendesak
     inv["ringkasan"] = ai_klien.susun_penjelasan("investasi", {"investasi": inv, "tujuan": properti["tujuan"]})
     hasil["investasi"] = inv
+    hasil["rekomendasi"] = penjelasan.rekomendasi_spesifikasi(properti, mendesak) + hasil["rekomendasi"]
     return hasil
 
 
@@ -286,7 +301,7 @@ def ringkas_untuk_daftar(properti):
     jumlah_foto = db.nilai("SELECT COUNT(*) FROM foto_bangunan WHERE properti_id = ?", (properti["id"],))
     terbuka = bool(properti["laporan_terbuka"])
     tahap = tentukan_tahap(properti, jumlah_foto, bangunan, ambil_inspeksi_aktif(properti["id"]))
-    data = {k: v for k, v in properti.items() if k != "data_survei"}
+    data = {k: v for k, v in urai_kolom_json(properti).items() if k != "data_survei"}
     return {
         **data,
         "tahap": {k: tahap[k] for k in ("kode", "label", "urutan", "langkah")},

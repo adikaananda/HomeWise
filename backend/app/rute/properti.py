@@ -66,7 +66,14 @@ def detail(properti_id):
 def ubah(properti_id):
     pengguna = pengguna_aktif()
     properti = layanan_properti.ambil_properti(properti_id, pengguna, izinkan_staf=False)
-    data = baca_json(SkemaUbahProperti).model_dump(exclude_none=True)
+    masukan = baca_json(SkemaUbahProperti)
+    data = masukan.model_dump(exclude_none=True)
+    if masukan.spesifikasi is not None:
+        # Gabungkan dengan spesifikasi lama. Kunci yang dikirim bernilai null berarti dikosongkan.
+        lama = layanan_properti.urai_kolom_json(properti).get("spesifikasi") or {}
+        baru = masukan.spesifikasi.model_dump(exclude_unset=True)
+        gabungan = {**lama, **baru}
+        data["spesifikasi"] = {k: v for k, v in gabungan.items() if v is not None}
     if data:
         data["diperbarui"] = db.sekarang()
         db.perbarui("properti", properti_id, data)

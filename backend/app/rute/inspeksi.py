@@ -146,7 +146,9 @@ def validasi(inspeksi_id):
         target["catatan_analis"] = item.get("catatan")
         if item["status"] == "disesuaikan":
             target["tingkat"] = item.get("tingkat") or target["tingkat"]
-            target["luas_m2"] = item.get("luas_m2") or target["luas_m2"]
+            if item.get("luas_m2"):
+                target["luas_m2"] = item["luas_m2"]
+                target["luas_diukur"] = True
     for item in temuan:
         if item.get("status") == "ai":
             item["status"] = "dikonfirmasi"

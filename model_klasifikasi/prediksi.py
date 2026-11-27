@@ -402,12 +402,50 @@ def _kunci_mask_dari_kelas(kelas_bd3: str) -> str:
     return "retak_dinding"
 
 
+# Perkiraan luas bidang yang tertangkap satu foto per area survei (m²). Dipakai untuk mengubah rasio piksel
+# menjadi meter persegi, sehingga foto close-up dinding bawah tidak dihitung seluas foto fasad.
+LUAS_BIDANG_FOTO = {"fasad": 20.0, "dinding_bawah": 3.0, "sudut_bukaan": 4.0, "plafon_basah": 6.0,
+                    "kamar_mandi": 6.0, "lantai": 6.0, "atap_talang": 12.0, "lainnya": 8.0}
+
+
+def _kerangka(biner: np.ndarray) -> np.ndarray:
+    """Skeleton morfologi (lebar 1 piksel) untuk mengukur panjang garis retak."""
+    if hasattr(cv2, "ximgproc"):
+        return cv2.ximgproc.thinning(biner)
+    kerangka = np.zeros_like(biner)
+    elemen = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+    sisa = biner.copy()
+    for _ in range(256):
+        terkikis = cv2.erode(sisa, elemen)
+        terbuka = cv2.dilate(terkikis, elemen)
+        kerangka = cv2.bitwise_or(kerangka, cv2.subtract(sisa, terbuka))
+        sisa = terkikis
+        if not np.any(sisa):
+            break
+    return kerangka
+
+
+def _ukur_mask(roi: np.ndarray, h: int, w: int, jenis_dasar: str) -> dict:
+    """Ukuran kerusakan dari piksel mask asli (tanpa penutupan morfologi) relatif terhadap seluruh foto."""
+    biner = (roi > 0).astype(np.uint8) * 255
+    biner = cv2.morphologyEx(biner, cv2.MORPH_OPEN, np.ones((2, 2), np.uint8))
+    ukuran = {"rasio_luas": float((biner > 0).sum()) / max(1.0, float(h * w)), "aspek": w / max(1, h)}
+    if jenis_dasar == "retak_dinding":
+        panjang_px = float((_kerangka(biner) > 0).sum())
+        ukuran["panjang_rasio_lebar"] = panjang_px / max(1.0, float(w))
+    return ukuran
+
+
 def _ekstrak_poligon(
     peta_mask: np.ndarray,
     kotak: tuple[float, float, float, float],
     jenis_dasar: str,
-) -> tuple[list[list[list[float]]] | None, float | None]:
-    """Mengekstrak daftar poligon simpul ternormalisasi dari seluruh kontur signifikan di dalam ROI kotak."""
+) -> tuple[list[list[list[float]]] | None, dict | None]:
+    """Mengekstrak poligon ternormalisasi (untuk tampilan) dan ukuran kerusakan dari piksel mask asli.
+
+    Poligon dirapikan dengan penutupan morfologi supaya enak dilihat, tetapi luas dan panjang dihitung dari
+    piksel mask sebelum dirapikan agar volume pekerjaan mengikuti bentuk asli kerusakan.
+    """
     h, w = peta_mask.shape[:2]
     kx, ky, lb, tg = kotak
     x1 = max(0, int(np.floor(kx * w)))
@@ -469,7 +507,8 @@ def _ekstrak_poligon(
             hull = cv2.convexHull(cnt)
             approx = cv2.approxPolyDP(hull, 0.02 * float(cv2.arcLength(hull, True)), True)
             if len(approx) < 3:
-                continue
+                # Retak lurus dan tipis: pakai persegi panjang miring minimum agar tetap tergambar.
+                approx = cv2.boxPoints(cv2.minAreaRect(cnt)).reshape(-1, 1, 2)
 
         titik = [
             [
@@ -483,8 +522,7 @@ def _ekstrak_poligon(
 
     if not daftar_poligon:
         return None, None
-    rasio_luas = total_luas_px / max(1.0, float(h * w))
-    return daftar_poligon, rasio_luas
+    return daftar_poligon, _ukur_mask(roi, h, w, jenis_dasar)
 
 
 def _jenis_sesuai_area(jenis_dasar: str, area: str) -> str:
@@ -516,18 +554,27 @@ def _petakan_ke_homewise(
     area: str,
     kotak: tuple[float, float, float, float],
     poligon_list: list[list[list[float]]] | None = None,
-    rasio_luas: float | None = None,
+    ukuran: dict | None = None,
 ):
     """Memetakan kelas visual BD3 + konteks area foto ke skema temuan HomeWise."""
     _, _, lebar, tinggi = kotak
-    if rasio_luas is not None and rasio_luas > 0:
-        if kelas_bd3 in ("major_crack", "minor_crack"):
-            rasio_efektif = max(rasio_luas, 0.35 * lebar * tinggi)
-        else:
-            rasio_efektif = rasio_luas
+    luas_bidang = LUAS_BIDANG_FOTO.get((area or "lainnya").lower(), LUAS_BIDANG_FOTO["lainnya"])
+    if ukuran and ukuran.get("rasio_luas", 0) > 0:
+        rasio_efektif = ukuran["rasio_luas"]
     else:
-        rasio_efektif = lebar * tinggi
-    luas_m2 = round(float(min(20.0, max(0.5, rasio_efektif * 12.0))), 1)
+        # Tanpa mask, kotak deteksi dipakai dengan faktor isi 50% karena kerusakan jarang memenuhi kotaknya.
+        rasio_efektif = 0.5 * lebar * tinggi
+    luas_m2 = round(float(min(luas_bidang, max(0.1, rasio_efektif * luas_bidang))), 2)
+
+    panjang_m = None
+    if kelas_bd3 in ("major_crack", "minor_crack"):
+        aspek = (ukuran or {}).get("aspek") or 4 / 3
+        lebar_bidang_m = float(np.sqrt(luas_bidang * aspek))
+        if ukuran and ukuran.get("panjang_rasio_lebar"):
+            panjang_m = ukuran["panjang_rasio_lebar"] * lebar_bidang_m
+        else:
+            panjang_m = float(np.hypot(lebar * lebar_bidang_m, tinggi * lebar_bidang_m / aspek))
+        panjang_m = round(min(15.0, max(0.2, panjang_m)), 2)
 
     if kelas_bd3 == "major_crack":
         tingkat = "berat"
@@ -555,6 +602,7 @@ def _petakan_ke_homewise(
         "tingkat": tingkat,
         "kepercayaan": round(float(prob), 2),
         "luas_m2": luas_m2,
+        "panjang_m": panjang_m if jenis == "retak_dinding" else None,
         "kotak": {
             "x": round(float(kotak[0]), 3),
             "y": round(float(kotak[1]), 3),
@@ -647,7 +695,7 @@ def _analisis_satu_foto(jalur_berkas: Path, foto_id: int, area: str, ambang: flo
         kotak_utama = _pilih_kotak_closeup(kelas_global, peta_kandidat)
         kunci_mask = _kunci_mask_dari_kelas(kelas_global)
         poligon_list, rasio_luas = _ekstrak_poligon(peta_mask[kunci_mask], kotak_utama, kunci_mask)
-        temuan = _petakan_ke_homewise(kelas_global, prob_global_max, area, kotak_utama, poligon_list=poligon_list, rasio_luas=rasio_luas)
+        temuan = _petakan_ke_homewise(kelas_global, prob_global_max, area, kotak_utama, poligon_list=poligon_list, ukuran=rasio_luas)
         if temuan:
             temuan["foto_id"] = foto_id
             return [temuan]
@@ -709,7 +757,7 @@ def _analisis_satu_foto(jalur_berkas: Path, foto_id: int, area: str, ambang: flo
         poligon_list, rasio_luas = _ekstrak_poligon(peta_mask[mask_dipakai], kotak, mask_dipakai)
         if poligon_list is None and mask_dipakai != jenis_dasar:
             poligon_list, rasio_luas = _ekstrak_poligon(peta_mask[jenis_dasar], kotak, jenis_dasar)
-        temuan = _petakan_ke_homewise(kelas_terpilih, prob_akhir, area, kotak, poligon_list=poligon_list, rasio_luas=rasio_luas)
+        temuan = _petakan_ke_homewise(kelas_terpilih, prob_akhir, area, kotak, poligon_list=poligon_list, ukuran=rasio_luas)
         if not temuan:
             continue
         temuan["foto_id"] = foto_id
@@ -731,7 +779,7 @@ def _analisis_satu_foto(jalur_berkas: Path, foto_id: int, area: str, ambang: flo
         kotak_fallback = _pilih_kotak_closeup(kelas_global, peta_kandidat)
         kunci_mask = _kunci_mask_dari_kelas(kelas_global)
         poligon_list, rasio_luas = _ekstrak_poligon(peta_mask[kunci_mask], kotak_fallback, kunci_mask)
-        temuan = _petakan_ke_homewise(kelas_global, prob_global_max, area, kotak_fallback, poligon_list=poligon_list, rasio_luas=rasio_luas)
+        temuan = _petakan_ke_homewise(kelas_global, prob_global_max, area, kotak_fallback, poligon_list=poligon_list, ukuran=rasio_luas)
         if temuan:
             temuan["foto_id"] = foto_id
             return [temuan]

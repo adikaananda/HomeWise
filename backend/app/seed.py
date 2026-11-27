@@ -18,8 +18,8 @@ PENGGUNA = [
 ]
 
 HARGA_REFERENSI = [
-    ("acian_dinding", "Plester tipis dan acian dinding", "Dinding", 18_000, 30_000),
-    ("bobok_plester", "Bobok dan plester ulang dinding", "Dinding", 55_000, 60_000),
+    ("acian_dinding", "Acian ulang dinding (tanpa bongkar plester)", "Dinding", 18_000, 30_000),
+    ("bobok_plester", "Bongkar plester rusak, plester ulang & acian", "Dinding", 73_000, 90_000),
     ("cat_dinding", "Pengecatan dinding (dasar + 2 lapis)", "Finishing", 22_000, 18_000),
     ("cat_plafon", "Pengecatan plafon", "Finishing", 20_000, 18_000),
     ("kerok_cat", "Pengerokan cat lama", "Finishing", 3_000, 15_000),
@@ -65,6 +65,20 @@ PROPERTI_DEMO = [
         "lat": -6.22664, "lng": 107.00058, "jenis_properti": "rumah", "tujuan": "investasi_sewa",
         "harga_penawaran": 1_250_000_000, "luas_tanah": 96, "luas_bangunan": 72, "tahun_bangun": 2015, "jumlah_lantai": 1,
         "sumber_iklan": "https://www.facebook.com/marketplace/contoh", "laporan_terbuka": 0,
+    },
+    {
+        "nama": "Rumah Hook Renon Denpasar",
+        "alamat": "Jl. Tukad Pakerisan, Panjer, Denpasar Selatan, Kota Denpasar, Bali",
+        "lat": -8.67820, "lng": 115.23080, "jenis_properti": "rumah", "tujuan": "rumah_tinggal",
+        "harga_penawaran": 3_600_000_000, "luas_tanah": 200, "luas_bangunan": 180, "tahun_bangun": 2010, "jumlah_lantai": 2,
+        "sumber_iklan": None, "laporan_terbuka": 0,
+        "spesifikasi": {
+            "kamar_tidur": 4, "kamar_mandi": 3, "lebar_depan_m": 12, "kapasitas_parkir_mobil": 2,
+            "kondisi_penjual": "siap_huni", "status_harga": "nego",
+            "bentuk_tanah": "persegi", "posisi_tanah": "hook", "ketinggian_tanah_m": 0.3, "legalitas_tanah": "shm",
+            "legalitas_bangunan": "ada", "kondisi_lingkungan": "baik", "lebar_jalan_depan_m": 8, "lebar_jalan_menuju_m": 10,
+            "kondisi_jalan": "baik", "citra_lokasi": "baik_sekali", "tampilan_tren": True, "kelas_bahan": "kelas_2",
+        },
     },
 ]
 
@@ -191,15 +205,15 @@ def isi_data_awal():
     temuan = [
         {**t, "foto_id": foto_utama[area], "status": "ai"}
         for area, t in [
-            ("sudut_bukaan", {"jenis": "retak_dinding", "tingkat": "sedang", "kepercayaan": 0.91, "luas_m2": 4.5,
+            ("sudut_bukaan", {"jenis": "retak_dinding", "tingkat": "sedang", "kepercayaan": 0.91, "luas_m2": 0.72, "panjang_m": 2.4,
                               "kotak": {"x": 0.24, "y": 0.07, "lebar": 0.3, "tinggi": 0.82}}),
-            ("plafon_basah", {"jenis": "noda_lembap", "tingkat": "sedang", "kepercayaan": 0.86, "luas_m2": 6.0,
+            ("plafon_basah", {"jenis": "noda_lembap", "tingkat": "sedang", "kepercayaan": 0.86, "luas_m2": 2.2,
                               "kotak": {"x": 0.2, "y": 0.04, "lebar": 0.42, "tinggi": 0.4}}),
-            ("plafon_basah", {"jenis": "kerusakan_plafon", "tingkat": "ringan", "kepercayaan": 0.68, "luas_m2": 3.0,
+            ("plafon_basah", {"jenis": "kerusakan_plafon", "tingkat": "ringan", "kepercayaan": 0.68, "luas_m2": 0.8,
                               "kotak": {"x": 0.62, "y": 0.04, "lebar": 0.3, "tinggi": 0.22}}),
-            ("dinding_bawah", {"jenis": "cat_mengelupas", "tingkat": "ringan", "kepercayaan": 0.94, "luas_m2": 12.0,
+            ("dinding_bawah", {"jenis": "cat_mengelupas", "tingkat": "ringan", "kepercayaan": 0.94, "luas_m2": 2.4,
                                "kotak": {"x": 0.14, "y": 0.16, "lebar": 0.72, "tinggi": 0.68}}),
-            ("atap_talang", {"jenis": "atap_bocor", "tingkat": "sedang", "kepercayaan": 0.79, "luas_m2": 5.0,
+            ("atap_talang", {"jenis": "atap_bocor", "tingkat": "sedang", "kepercayaan": 0.79, "luas_m2": 2.5,
                              "kotak": {"x": 0.38, "y": 0.3, "lebar": 0.26, "tinggi": 0.3}}),
         ]
     ]

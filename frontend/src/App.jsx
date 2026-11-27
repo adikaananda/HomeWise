@@ -13,6 +13,7 @@ import SimulasiKPR from "./halaman/pencari/SimulasiKPR";
 import { Daftar, Masuk } from "./halaman/publik/Autentikasi";
 import Beranda from "./halaman/publik/Beranda";
 import Harga, { TidakDitemukan } from "./halaman/publik/Harga";
+import PetaHarga from "./halaman/publik/PetaHarga";
 import { cocokkan, useRouter } from "./lib/router";
 
 const PENCARI = ["pencari", "admin"];
@@ -23,6 +24,7 @@ const SEMUA = ["pencari", "analis", "admin"];
 const RUTE = [
   { pola: "/", halaman: Beranda },
   { pola: "/harga", halaman: Harga },
+  { pola: "/peta-harga", halaman: PetaHarga },
   { pola: "/masuk", halaman: Masuk },
   { pola: "/daftar", halaman: Daftar },
 

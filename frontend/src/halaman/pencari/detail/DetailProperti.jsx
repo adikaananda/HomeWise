@@ -10,6 +10,7 @@ import {
   LuLock,
   LuMapPin,
   LuRefreshCw,
+  LuScale,
   LuStar,
   LuTrash2,
   LuWallet,
@@ -29,12 +30,14 @@ import { TabBangunan } from "./TabBangunan";
 import { TabBiaya } from "./TabBiaya";
 import { TabLaporan, TombolUnduhLaporan } from "./TabLaporan";
 import { TabLokasi } from "./TabLokasi";
+import { TabNilai } from "./TabNilai";
 
 const JENIS = { rumah: "Rumah", apartemen: "Apartemen", ruko: "Ruko", gedung: "Gedung / kantor", tanah_bangunan: "Tanah dan bangunan" };
 
 const TAB = [
   { kode: "lokasi", label: "Lokasi", ikon: LuMapPin },
   { kode: "bangunan", label: "Kondisi bangunan", ikon: LuBuilding2 },
+  { kode: "nilai", label: "Faktor nilai", ikon: LuScale },
   { kode: "biaya", label: "Biaya & investasi", ikon: LuWallet },
   { kode: "laporan", label: "Laporan & tindak lanjut", ikon: LuFileText },
 ];
@@ -115,7 +118,7 @@ function LangkahBerikutnya({ detail, milikSendiri, keTab }) {
   );
 }
 
-const KODE_TAB = ["lokasi", "bangunan", "biaya", "laporan"];
+const KODE_TAB = ["lokasi", "bangunan", "nilai", "biaya", "laporan"];
 
 export default function DetailProperti({ id }) {
   const { pengguna } = useAuth();
@@ -165,6 +168,7 @@ export default function DetailProperti({ id }) {
   const kontenTab = () => {
     if (tab === "lokasi") return <TabLokasi detail={detail} />;
     if (tab === "bangunan") return <TabBangunan detail={detail} setDetail={setDetail} muatUlang={segarkan} />;
+    if (tab === "nilai") return <TabNilai detail={detail} setDetail={setDetail} milikSendiri={milikSendiri} />;
     if (!premium) return <PanelTerkunci properti={properti} onTerbuka={segarkan} />;
     if (tab === "biaya")
       return (
@@ -211,8 +215,13 @@ export default function DetailProperti({ id }) {
         {properti.luas_bangunan && <Lencana nada="netral">LB {properti.luas_bangunan} m²</Lencana>}
         {properti.luas_tanah && <Lencana nada="netral">LT {properti.luas_tanah} m²</Lencana>}
         {properti.tahun_bangun && <Lencana nada="netral">Dibangun {properti.tahun_bangun}</Lencana>}
+        {properti.spesifikasi?.tahun_renovasi_terakhir && <Lencana nada="netral">Renovasi {properti.spesifikasi.tahun_renovasi_terakhir}</Lencana>}
+        {properti.spesifikasi?.kamar_tidur != null && <Lencana nada="netral">{properti.spesifikasi.kamar_tidur} KT</Lencana>}
+        {properti.spesifikasi?.kamar_mandi != null && <Lencana nada="netral">{properti.spesifikasi.kamar_mandi} KM</Lencana>}
+        {properti.spesifikasi?.lebar_depan_m != null && <Lencana nada="netral">Lebar muka {properti.spesifikasi.lebar_depan_m} m</Lencana>}
+        {properti.spesifikasi?.kapasitas_parkir_mobil != null && <Lencana nada="netral">Parkir {properti.spesifikasi.kapasitas_parkir_mobil} mobil</Lencana>}
         <Lencana nada={premium ? "sukses" : undefined}>{premium ? "Laporan lengkap" : "Ringkasan gratis"}</Lencana>
-        {properti.pilihan_utama && <Lencana nada="sukses" ikon={LuStar}>Rumah pilihan utama</Lencana>}
+        {!!properti.pilihan_utama && <Lencana nada="sukses" ikon={LuStar}>Rumah pilihan utama</Lencana>}
         {detail.lokasi?.sumber === "simulasi" ? (
           <Lencana nada="peringatan">Data AI mode demo</Lencana>
         ) : detail.lokasi?.sumber ? (
@@ -226,7 +235,7 @@ export default function DetailProperti({ id }) {
         <span className="teks-mini teks-redup">Ditambahkan {tanggal(properti.dibuat)}</span>
       </div>
 
-      {properti.pilihan_utama && (
+      {!!properti.pilihan_utama && (
         <div style={{ marginBottom: 20 }}>
           <Pemberitahuan
             nada="sukses"

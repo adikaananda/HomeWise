@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from flask import Blueprint, current_app, send_from_directory
+from flask import Blueprint, current_app, request, send_from_directory
 
-from ..layanan import ai_klien, lokasi, midtrans, penjelasan
+from ..layanan import ai_klien, harga_tanah, lokasi, midtrans, penjelasan
 from ..layanan.konstanta import (
     AREA_FOTO,
     INDIKATOR,
@@ -73,6 +73,13 @@ def cek_cepat():
         "ringkasan": penjelasan.ringkasan_lokasi(hasil, data.tujuan),
         "sumber": sumber,
     })
+
+
+@bp.get("/peta-harga")
+@batasi_laju(60)
+def peta_harga():
+    kabupaten = (request.args.get("kabupaten") or "").strip() or None
+    return sukses(harga_tanah.ambil_peta(kabupaten))
 
 
 @bp.get("/berkas/<path:nama>")

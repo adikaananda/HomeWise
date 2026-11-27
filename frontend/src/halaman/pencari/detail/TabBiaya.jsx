@@ -64,6 +64,49 @@ function RingkasanInvestasi({ investasi }) {
   );
 }
 
+function PembandingPasar({ investasi }) {
+  const p = investasi.pembanding_pasar;
+  return (
+    <Kartu judul="Kegunaan harga yang ditawarkan" sub="Harga yang diminta penjual adalah titik awal semua perhitungan di bawah.">
+      <div className="kisi-2" style={{ alignItems: "start" }}>
+        <ul className="daftar-poin">
+          {investasi.kegunaan_harga.map((k) => (
+            <li key={k}>
+              <LuCheck color="var(--hijau)" aria-hidden="true" />
+              <span className="teks-kecil">{k}</span>
+            </li>
+          ))}
+        </ul>
+        {p ? (
+          <div className="pembanding-pasar">
+            <span className="teks-mini teks-redup">{`Pembanding: harga tanah ${p.kawasan}, ${p.kabupaten} (${(p.jarak_m / 1000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} km)`}</span>
+            <dl className="daftar-definisi">
+              <dt>Median harga tanah kawasan</dt>
+              <dd className="angka">{rupiah(p.median_tanah_per_m2)}/m²</dd>
+              {p.harga_per_m2_tanah && (
+                <>
+                  <dt>Harga penawaran per m² tanah</dt>
+                  <dd className="angka">{rupiah(p.harga_per_m2_tanah)}/m²</dd>
+                  <dt>Perkiraan nilai tanahnya saja</dt>
+                  <dd className="angka">{rupiah(p.nilai_tanah_pasar)}</dd>
+                  <dt>Sisa harga = nilai bangunan tersirat</dt>
+                  <dd className="angka">{rupiah(p.nilai_bangunan_tersirat)}</dd>
+                </>
+              )}
+            </dl>
+            <p className="teks-kecil">{p.kesimpulan}</p>
+            <p className="teks-mini teks-redup">{`Data ${p.jenis_data === "penawaran" ? "harga penawaran listing" : p.jenis_data}, ${p.jumlah_sampel} sampel, periode ${p.periode}. Lihat Peta Harga Tanah untuk detail.`}</p>
+          </div>
+        ) : (
+          <p className="teks-kecil teks-redup">
+            Belum ada data harga tanah pasar dalam radius 3 km dari properti ini. Data Peta Harga Tanah saat ini mencakup Denpasar dan Badung.
+          </p>
+        )}
+      </div>
+    </Kartu>
+  );
+}
+
 function KartuPrioritas({ daftar, aktif, onPilih }) {
   return (
     <div className="kisi-prioritas" role="group" aria-label="Saring berdasarkan prioritas">
@@ -103,9 +146,28 @@ function TabelPekerjaan({ biaya, filter }) {
         <tbody>
           {item.map((i) => (
             <tr key={`${i.kode}-${i.prioritas}`}>
-              <td>
+              <td className="sel-pekerjaan">
                 <strong>{i.pekerjaan}</strong>
+                {i.keterangan && <p className="teks-mini sel-pekerjaan__ket">{i.keterangan}</p>}
                 <div className="teks-mini teks-redup">Untuk: {i.sumber_temuan.join(", ")}</div>
+                {i.rincian_volume?.length > 0 && (
+                  <details className="rincian-volume">
+                    <summary className="teks-mini">Dasar volume ({i.rincian_volume.length} lokasi)</summary>
+                    <ul>
+                      {i.rincian_volume.map((r, n) => (
+                        <li key={n} className="teks-mini">
+                          <span>
+                            <strong>{r.lokasi}</strong> · {r.temuan}
+                            <span className="teks-redup" style={{ display: "block" }}>{r.dasar}</span>
+                          </span>
+                          <span className="angka tebal">
+                            {angkaDesimal(r.volume)} {satuan(i.satuan)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
               </td>
               <td>
                 <LencanaPrioritas kode={i.prioritas} />
@@ -224,6 +286,7 @@ export function TabBiaya({ detail, keBangunan }) {
   return (
     <div className="tumpuk" style={{ gap: 20 }}>
       <RingkasanInvestasi investasi={investasi} />
+      {investasi.kegunaan_harga && <PembandingPasar investasi={investasi} />}
 
       {adaRincian ? (
         <>
@@ -247,6 +310,16 @@ export function TabBiaya({ detail, keBangunan }) {
             }
           >
             <TabelPekerjaan biaya={biaya} filter={filter} />
+            {biaya.asumsi.metode_volume && (
+              <details className="metode-volume">
+                <summary className="teks-kecil tebal">Cara HomeWise menghitung volume</summary>
+                <ul className="teks-kecil">
+                  {biaya.asumsi.metode_volume.map((m) => (
+                    <li key={m}>{m}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
             <p className="teks-mini teks-redup" style={{ marginTop: 10 }}>
               Rentang wajar {rupiah(biaya.rentang_min)} – {rupiah(biaya.rentang_maks)}. Harga satuan disesuaikan indeks wilayah{" "}
               {biaya.asumsi.indeks_harga_wilayah}.

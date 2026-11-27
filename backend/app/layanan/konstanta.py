@@ -62,6 +62,22 @@ JENIS_KERUSAKAN = {
 
 PENALTI_TINGKAT = {"ringan": 4, "sedang": 9, "berat": 18}
 
+# Perkiraan luas bidang (m²) yang tertangkap dalam satu foto per area survei, sesuai panduan jarak foto.
+# Dipakai untuk mengubah piksel kerusakan menjadi m² dan sebagai batas atas volume per foto.
+LUAS_BIDANG_FOTO = {
+    "fasad": 20.0,
+    "dinding_bawah": 3.0,
+    "sudut_bukaan": 4.0,
+    "plafon_basah": 6.0,
+    "kamar_mandi": 6.0,
+    "lantai": 6.0,
+    "atap_talang": 12.0,
+    "lainnya": 8.0,
+}
+
+# Lebar jalur bongkar/plester di sepanjang retak (m), per tingkat keparahan.
+LEBAR_JALUR_RETAK = {"ringan": 0.15, "sedang": 0.30, "berat": 0.50}
+
 AREA_FOTO = [
     {"kode": "fasad", "label": "Tampak depan", "wajib": True,
      "panduan": "Foto dari seberang jalan sampai seluruh bangunan dan atap terlihat."},

@@ -277,7 +277,8 @@ Response:
       "jenis": "retak_dinding",
       "tingkat": "ringan|sedang|berat",
       "kepercayaan": 0.91,
-      "luas_m2": 4.5,
+      "luas_m2": 0.72,
+      "panjang_m": 2.4,
       "foto_id": 12,
       "kotak": { "x": 0.24, "y": 0.07, "lebar": 0.3, "tinggi": 0.4 }
     }
@@ -287,10 +288,12 @@ Response:
 
 - `jenis`: `retak_dinding`, `cat_mengelupas`, `noda_lembap`, `kerusakan_plafon`, `keramik_rusak`, `atap_bocor`.
 - `kotak`: bounding box ternormalisasi 0–1 relatif terhadap lebar/tinggi foto (dipakai untuk menggambar penanda di UI).
-- `luas_m2`: estimasi luas area rusak. Bila model belum bisa mengestimasi, kirim nilai default per jenis; analis dapat mengoreksi.
+- `luas_m2`: luas area rusak menurut **bentuk asli kerusakan** (jumlah piksel mask × luas bidang foto), bukan luas kotak deteksi. Luas bidang per area foto ada di `LUAS_BIDANG_FOTO` (`konstanta.py`), misalnya dinding bawah ±3 m², fasad ±20 m².
+- `panjang_m` (opsional, khusus `retak_dinding`): panjang garis retak dari skeleton mask. Bila ada, volume perbaikan retak = panjang × lebar jalur (ringan 0,15 m · sedang 0,3 m · berat 0,5 m), sehingga retak memanjang tidak dihitung sebagai bidang persegi.
 - Biaya renovasi, **prioritas**, dan **kebutuhan material** dihitung backend (`layanan/biaya.py`), bukan oleh model:
-  - `jenis × tingkat` → daftar pekerjaan (misal retak sedang → bobok plester + acian + cat).
-  - `luas_m2 × faktor` → volume pekerjaan.
+  - `jenis × tingkat` → daftar pekerjaan (misal retak sedang → bongkar plester & plester ulang yang sudah termasuk acian + cat). Acian dan kerok cat tidak dihitung lagi di bidang yang sudah dibongkar plesternya.
+  - luas dasar × faktor (≤1,15, hanya untuk tepi kerja cat/atap) → volume pekerjaan; volume per foto dibatasi luas bidang foto dan temuan yang tumpang tindih tidak dijumlah dua kali. Luas ukur analis dipakai apa adanya.
+  - Setiap pekerjaan membawa `keterangan` (lingkup kerja) dan `rincian_volume` (lokasi, temuan, dasar hitung).
   - volume × harga referensi → biaya material + upah.
   - volume × koefisien material AHSP → kebutuhan material, dibulatkan ke kemasan (sak, galon, dus).
   - `jenis × tingkat` → prioritas (`MATRIKS_PRIORITAS` di `konstanta.py`).
@@ -520,3 +523,56 @@ with app.app_context():
 ---
 
 HomeWise bukan marketplace jual-beli dan bukan pengganti inspeksi profesional. HomeWise membantu pengguna menentukan properti mana yang layak dipertimbangkan lebih lanjut.
+
+---
+
+## Peta Harga Tanah
+
+Fitur publik dan gratis (freemium) di `/peta-harga`, tanpa login. Menampilkan harga tanah per m² per kawasan di peta Leaflet, dengan filter kategori harga (premium ≥ Rp12 jt, menengah Rp7–12 jt, terjangkau < Rp7 jt) dan wilayah.
+
+**Endpoint**
+
+| Metode | Jalur | Akses | Keterangan |
+|---|---|---|---|
+| GET | `/api/peta-harga?kabupaten=Denpasar` | Publik | Data peta, ringkasan per kabupaten, indeks pasar kota |
+| GET | `/api/admin/harga-tanah` | Admin | Semua catatan harga per periode |
+| POST | `/api/admin/harga-tanah` | Admin | Tambah/perbarui satu catatan (membentuk tren) |
+
+**Sumber data, berurutan menurut prioritas**
+
+1. **API penyedia** lewat `HARGA_TANAH_API_URL` (+ `HARGA_TANAH_API_KEY` opsional, dikirim sebagai Bearer). Dipanggil paling sering sekali per `HARGA_TANAH_CACHE_JAM` jam, dan hasilnya disimpan ke database sehingga riwayat dan tren terbentuk. Bila gagal, aplikasi memakai data tersimpan. Format respons yang diharapkan:
+
+   ```json
+   {"wilayah": [{"kode": "renon", "nama": "Renon", "kecamatan": "Denpasar Selatan", "kabupaten": "Denpasar",
+     "lat": -8.6745, "lng": 115.2357, "radius_m": 1200, "periode": "2026-12",
+     "harga_min": 11000000, "harga_median": 14500000, "harga_maks": 17000000,
+     "jumlah_sampel": 12, "jenis_data": "penawaran", "sumber": "Nama mitra data", "url_sumber": null}]}
+   ```
+
+   `jenis_data` salah satu dari `penawaran` (harga listing), `transaksi`, atau `znt` (Zona Nilai Tanah ATR/BPN).
+2. **Input admin** lewat `POST /api/admin/harga-tanah` dengan isi yang sama per wilayah.
+3. **Data awal** di `backend/app/layanan/harga_tanah.py`: rekap harga penawaran listing publik (99.co, Rumah123, Brighton, Dot Property) per kawasan, November 2026, untuk 8 kawasan Denpasar & Badung. Ini harga yang diminta penjual, bukan harga transaksi, dan setiap kawasan menampilkan jumlah sampel serta tingkat keyakinannya.
+
+**Tren** dihitung otomatis sebagai perubahan median dibanding catatan berjenis data sama 12 bulan sebelumnya. Data awal baru punya satu periode, jadi tren per kawasan muncul setelah periode berikutnya tercatat. Indeks pasar tingkat kota (tabel `indeks_pasar_kota`) ditampilkan sebagai kartu di peta.
+
+Belum ada API publik harga tanah di Indonesia. Kandidat sumber resmi untuk `HARGA_TANAH_API_URL`: Zona Nilai Tanah ATR/BPN (portal Bhumi, perlu kerja sama), atau kemitraan data dengan portal properti.
+
+## Faktor Nilai Rumah (model penelitian Denpasar)
+
+Tab **Faktor nilai** di detail properti menerapkan simpulan penelitian M. Mariada Rijasa, M. Sukrawa & Mayun Nadiasa,
+*Analisis Penilaian Bangunan Rumah Tinggal di Kota Denpasar*, Jurnal Spektran Vol. 2 No. 2 (2014), 31–40.
+Logika ada di `backend/app/layanan/penilaian_nilai.py`, hasilnya dikirim sebagai `penilaian` pada `GET /api/properti/<id>`.
+
+- **Peringkat kelompok** (eigenvalue): lokasi 7,723 · lingkungan 3,843 · karakteristik bangunan 3,741 · karakteristik tanah 3,253.
+- **Faktor dominan**: pusat kota, lebar jalan depan, luas bangunan, luas tanah (positif); SUTET, lingkungan/jalan kurang baik,
+  kondisi bangunan kurang baik, tusuk sate (negatif). Masing-masing dicocokkan dengan properti: dimiliki / aman / terdeteksi / belum diketahui.
+- **Rincian 43 variabel** dengan koefisien Tabel 4, nilai untuk properti ini, asal data (data properti, isian, deteksi otomatis, belum diisi), dan pengaruhnya.
+- **Nilai model** = 89.528.004 + Σ(koefisien × nilai), dalam rupiah 2013 (rentang ±5,06%). Dipakai sebagai pembanding relatif, bukan harga pasar.
+- **Deteksi otomatis** dari OpenStreetMap (`faktor_sekitar` di `lokasi_asli.py`): jarak sarana rekreasi, SUTET/SUTT (jarak ke garis `power=line`),
+  kuburan/setra, kawasan industri, jumlah akomodasi wisata 500 m, plus jarak pendidikan/kesehatan/belanja dan lebar jalan yang sudah ada.
+  Pusat kota = ≤ 2,5 km dari Lapangan Puputan Badung atau Niti Mandala Renon.
+- **Isian pengguna** (`spesifikasi`): posisi & bentuk tanah, ketinggian dari jalan, SHM, IMB/PBG, landscape view, kondisi lingkungan & jalan,
+  lebar jalan depan/menuju, citra lokasi, kawasan (RDTR), struktur, tampilan, kelas bahan, serta koreksi deteksi otomatis.
+  Bisa diisi di form properti baru (bagian opsional) atau tombol **Lengkapi faktor**. `PATCH /api/properti/<id>` menggabungkan spesifikasi; kirim `null` untuk mengosongkan.
+- Batas jarak dekat ≤ 1 km / sedang 1–3 km ditetapkan HomeWise karena makalah tidak mencantumkannya. Properti di luar Denpasar tetap dihitung, dengan peringatan cakupan.
+- Properti demo ke-4 (**Rumah Hook Renon Denpasar**) sudah berisi faktor lengkap untuk demo.

@@ -96,11 +96,16 @@ def _bersihkan_temuan(data):
             continue
         poligon_list = _bersihkan_poligon_jamak(t.get("poligon_list"))
         poligon = _bersihkan_poligon(t.get("poligon")) or (poligon_list[0] if poligon_list else None)
+        try:
+            panjang = float(t.get("panjang_m") or 0)
+        except (TypeError, ValueError):
+            panjang = 0
         hasil.append({
             "jenis": t["jenis"],
             "tingkat": t["tingkat"],
             "kepercayaan": round(min(1.0, max(0.0, float(t.get("kepercayaan") or 0))), 2),
-            "luas_m2": round(min(luas, 1000.0), 1),
+            "luas_m2": round(min(luas, 1000.0), 2),
+            "panjang_m": round(min(panjang, 100.0), 2) if t["jenis"] == "retak_dinding" and panjang > 0 else None,
             "foto_id": t.get("foto_id"),
             "kotak": t.get("kotak") if isinstance(t.get("kotak"), dict) else None,
             "poligon": poligon,

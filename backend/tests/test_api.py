@@ -406,3 +406,116 @@ def test_llm_openrouter_fallback_statis(tmp_path, monkeypatch, klien):
     monkeypatch.setattr(requests, "post", balas_rusak)
     with app.app_context():
         assert ai_klien.susun_penjelasan("investasi", {"investasi": inv}) == harapan_statis
+
+
+def test_peta_harga_publik(klien):
+    respon = klien.get("/api/peta-harga")
+    assert respon.status_code == 200
+    data = respon.json["data"]
+    kode = {w["kode"] for w in data["wilayah"]}
+    assert {"renon", "sanur", "canggu"} <= kode
+    renon = next(w for w in data["wilayah"] if w["kode"] == "renon")
+    assert renon["harga_min"] <= renon["harga_median"] <= renon["harga_maks"]
+    assert renon["jenis_data"] == "penawaran"
+    assert renon["perubahan_yoy"] is None
+    assert data["mode"] == "tersimpan"
+
+    badung = klien.get("/api/peta-harga?kabupaten=Badung").json["data"]
+    assert badung["wilayah"] and all(w["kabupaten"] == "Badung" for w in badung["wilayah"])
+
+
+def test_admin_harga_tanah_membentuk_tren(klien):
+    admin = masuk(klien, "admin@homewise.id", "admin12345")
+    klien.get("/api/peta-harga")
+    isi = {
+        "kode": "renon", "nama": "Renon", "kecamatan": "Denpasar Selatan", "kabupaten": "Denpasar",
+        "lat": -8.6745, "lng": 115.2357, "periode": "2025-11", "harga_min": 10_000_000,
+        "harga_median": 13_000_000, "harga_maks": 15_000_000, "jumlah_sampel": 9,
+        "jenis_data": "penawaran", "sumber": "Uji",
+    }
+    assert klien.post("/api/admin/harga-tanah", json=isi, headers=admin).status_code == 201
+    renon = next(w for w in klien.get("/api/peta-harga").json["data"]["wilayah"] if w["kode"] == "renon")
+    assert renon["perubahan_yoy"] == round((renon["harga_median"] / 13_000_000 - 1) * 100, 1)
+    assert len(renon["riwayat"]) == 2
+
+    salah = {**isi, "harga_min": 20_000_000}
+    assert klien.post("/api/admin/harga-tanah", json=salah, headers=admin).status_code == 422
+    pencari = masuk(klien, "demo@homewise.id", "demo12345")
+    assert klien.post("/api/admin/harga-tanah", json=isi, headers=pencari).status_code == 403
+
+
+def test_volume_renovasi_mengikuti_bentuk_asli_dan_tanpa_repetisi(klien):
+    from app.layanan import biaya as layanan_biaya
+
+    with klien.application.app_context():
+        retak = [{"jenis": "retak_dinding", "tingkat": "sedang", "luas_m2": 0.6, "panjang_m": 2.0,
+                  "foto_id": None, "status": "ai"}]
+        hasil = layanan_biaya.hitung_renovasi(retak)
+        kode = [i["kode"] for i in hasil["rincian"]]
+        # Paket bongkar plester sudah mencakup acian: tidak boleh muncul bersamaan.
+        assert "bobok_plester" in kode and "acian_dinding" not in kode
+        bobok = next(i for i in hasil["rincian"] if i["kode"] == "bobok_plester")
+        assert bobok["volume"] == 0.6  # 2 m × jalur 0,3 m, bukan luas kotak
+        assert bobok["keterangan"] and bobok["rincian_volume"][0]["dasar"].startswith("retak 2 m")
+
+        # Retak data lama tanpa panjang dibatasi supaya tidak melonjak.
+        lama = layanan_biaya.hitung_renovasi([{**retak[0], "panjang_m": None, "luas_m2": 9.0}])
+        assert max(i["volume"] for i in lama["rincian"]) <= 2.0 * 1.15 + 1e-9
+
+        # Luas yang diukur analis dipakai apa adanya.
+        analis = layanan_biaya.hitung_renovasi([{"jenis": "cat_mengelupas", "tingkat": "berat", "luas_m2": 7.5,
+                                                 "foto_id": None, "status": "analis"}])
+        assert next(i for i in analis["rincian"] if i["kode"] == "bobok_plester")["volume"] == 7.5
+
+
+def test_volume_per_foto_dibatasi_luas_bidang(klien):
+    header = masuk(klien, "demo@homewise.id", "demo12345")
+    detail = klien.get("/api/properti/1", headers=header).json["data"]
+    biaya = detail["biaya"]
+    assert biaya["asumsi"]["metode_volume"]
+    for item in biaya["item"]:
+        assert item["keterangan"]
+        assert abs(sum(r["volume"] for r in item["rincian_volume"]) - item["volume"]) < 0.02
+    with klien.application.app_context():
+        from app import db
+        from app.layanan import biaya as layanan_biaya
+        foto = db.satu("SELECT id FROM foto_bangunan WHERE area = 'dinding_bawah' LIMIT 1")
+        temuan = [{"jenis": "cat_mengelupas", "tingkat": "ringan", "luas_m2": 2.5, "foto_id": foto["id"], "status": "ai"},
+                  {"jenis": "noda_lembap", "tingkat": "ringan", "luas_m2": 2.5, "foto_id": foto["id"], "status": "ai"}]
+        hasil = layanan_biaya.hitung_renovasi(temuan)
+        cat = next(i for i in hasil["rincian"] if i["kode"] == "cat_dinding")
+        assert cat["volume"] <= 3.0  # dua temuan tumpang tindih di satu foto dinding bawah (±3 m²)
+
+
+def test_faktor_nilai_model_denpasar(klien):
+    header = masuk(klien, "demo@homewise.id", "demo12345")
+    renon = klien.get("/api/properti/4", headers=header).json["data"]["penilaian"]
+    assert renon["berlaku"] is True
+    assert [k["kode"] for k in renon["kelompok"]] == ["lokasi", "lingkungan", "bangunan", "tanah"]
+    assert [k["eigen"] for k in renon["kelompok"]] == [7.723, 3.843, 3.741, 3.253]
+    assert len(renon["sorotan"]) == 8
+    # Nilai model = konstanta + Σ koefisien × nilai.
+    semua = [f for k in renon["kelompok"] for f in k["faktor"]]
+    assert renon["nilai_model_2013"] == renon["konstanta"] + sum(f["kontribusi"] for f in semua)
+    hook = next(f for f in semua if f["kode"] == "X3c")
+    assert hook["aktif"] and hook["kontribusi"] == 73_199_406
+
+    # Mengubah posisi tanah menjadi tusuk sate menurunkan nilai model dan muncul sebagai faktor negatif.
+    sebelum = renon["nilai_model_2013"]
+    ubah = klien.patch("/api/properti/4", headers=header, json={"spesifikasi": {"posisi_tanah": "tusuk_sate"}})
+    sesudah = ubah.json["data"]["penilaian"]
+    assert sesudah["nilai_model_2013"] == sebelum - 73_199_406 - 65_362_691
+    assert any(f["kode"] == "X3a" for f in sesudah["negatif"])
+    # Spesifikasi lain tetap tersimpan (digabung, bukan ditimpa).
+    assert ubah.json["data"]["properti"]["spesifikasi"]["legalitas_tanah"] == "shm"
+
+    luar = klien.get("/api/properti/1", headers=header).json["data"]["penilaian"]
+    assert luar["berlaku"] is False and luar["kelengkapan"]["belum"]
+
+
+def test_jarak_ke_garis_sutet():
+    from app.layanan.lokasi_asli import _jarak_ke_garis_m
+
+    garis = [{"lat": -8.6700, "lon": 115.2200}, {"lat": -8.6700, "lon": 115.2400}]
+    # Titik 0,001° (~110 m) di selatan garis horizontal.
+    assert 100 <= _jarak_ke_garis_m(-8.6710, 115.2300, garis) <= 120

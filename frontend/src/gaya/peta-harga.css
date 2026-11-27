@@ -1,0 +1,515 @@
+.peta-harga {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 68px);
+  background: var(--permukaan);
+}
+
+.peta-harga__peta {
+  position: relative;
+  height: 58vh;
+  min-height: 360px;
+  isolation: isolate;
+}
+
+.peta-harga__kanvas {
+  position: absolute;
+  inset: 0;
+}
+
+.peta-harga__panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--putih);
+  order: 2;
+}
+
+.peta-harga__kepala {
+  padding: 20px 20px 4px;
+}
+
+.peta-harga__kepala h1 {
+  font-size: var(--teks-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--tinta);
+}
+
+.peta-harga__kepala p {
+  margin-top: 4px;
+  font-size: var(--teks-sm);
+  color: var(--abu);
+}
+
+.peta-harga__filter {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  gap: 6px;
+  margin: 14px 20px 0;
+  padding: 5px;
+  border-radius: var(--r-lg);
+  background: var(--permukaan);
+}
+
+.chip-harga {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--r-pil);
+  background: transparent;
+  color: var(--tinta-2);
+  font: inherit;
+  font-size: var(--teks-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+}
+
+.chip-harga i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.chip-harga span {
+  opacity: 0.7;
+}
+
+.chip-harga--aktif {
+  background: var(--gradasi-segar);
+  color: #fff;
+  box-shadow: var(--bayang-2);
+}
+
+.chip-harga--aktif i {
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.peta-harga__wilayah {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 20px 4px;
+}
+
+.peta-harga__wilayah > span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--tinta-2);
+  margin-right: 4px;
+}
+
+.chip-wilayah {
+  padding: 5px 14px;
+  border: 1.5px solid var(--mint);
+  border-radius: var(--r-pil);
+  background: #fff;
+  color: var(--hijau);
+  font: inherit;
+  font-size: var(--teks-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chip-wilayah--aktif {
+  border-color: transparent;
+  background: var(--gradasi-segar);
+  color: #fff;
+}
+
+.peta-harga__daftar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--garis);
+  margin-top: 12px;
+}
+
+.peta-harga__pesan {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--abu);
+  font-size: var(--teks-sm);
+}
+
+.kartu-harga {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px solid var(--garis);
+  border-left: 4px solid var(--warna-kategori);
+  border-radius: var(--r-md);
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  color: var(--tinta);
+  cursor: pointer;
+  transition: border-color var(--cepat), box-shadow var(--cepat), transform var(--cepat);
+}
+
+.kartu-harga:hover {
+  box-shadow: var(--bayang-2);
+  transform: translateY(-1px);
+}
+
+.kartu-harga--aktif {
+  border-color: var(--warna-kategori);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warna-kategori) 18%, transparent);
+}
+
+.kartu-harga__atas {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.kartu-harga__atas strong {
+  display: block;
+  font-size: var(--teks-md);
+  font-weight: 800;
+}
+
+.kartu-harga__atas span {
+  font-size: var(--teks-xs);
+  color: var(--abu);
+}
+
+.kartu-harga__lencana {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: var(--r-pil);
+  background: color-mix(in srgb, var(--warna-kategori) 14%, #fff);
+  color: var(--warna-kategori) !important;
+  font-weight: 800;
+  font-size: 11px !important;
+}
+
+.kartu-harga__harga {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.kartu-harga__harga b {
+  font-size: var(--teks-xl);
+  font-weight: 800;
+  color: var(--warna-kategori);
+  letter-spacing: -0.02em;
+}
+
+.kartu-harga__harga span {
+  font-size: var(--teks-xs);
+  color: var(--tinta-2);
+}
+
+.kartu-harga__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--abu);
+}
+
+.peta-harga__tren {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--r-pil);
+  font-weight: 700;
+}
+
+.peta-harga__tren svg {
+  width: 13px;
+  height: 13px;
+}
+
+.peta-harga__tren--naik {
+  background: var(--sukses-latar);
+  color: var(--sukses);
+}
+
+.peta-harga__tren--turun {
+  background: var(--bahaya-latar);
+  color: var(--bahaya);
+}
+
+.peta-harga__tren--kosong {
+  background: #eef1f7;
+  color: var(--abu);
+  font-weight: 600;
+}
+
+.peta-harga__catatan {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--biru-50);
+  color: var(--tinta-2);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.peta-harga__catatan svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  color: var(--biru);
+}
+
+.peta-harga__kaki {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--garis);
+  background: #fff;
+}
+
+.peta-harga__ringkas {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.peta-harga__cincin {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--gradasi-segar);
+  color: #fff;
+  font-weight: 800;
+  font-size: var(--teks-md);
+}
+
+.peta-harga__ringkas small {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--tinta-2);
+}
+
+.peta-harga__ringkas b {
+  font-size: var(--teks-sm);
+  color: var(--hijau);
+}
+
+.peta-harga__indeks {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(340px, calc(100% - 24px));
+}
+
+.peta-harga__indeks a {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--bayang-2);
+  color: var(--tinta);
+}
+
+.peta-harga__indeks svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--sukses);
+  margin-top: 1px;
+}
+
+.peta-harga__indeks b {
+  display: block;
+  font-size: var(--teks-xs);
+}
+
+.peta-harga__indeks small {
+  font-size: 11px;
+  color: var(--abu);
+}
+
+.peta-harga__legenda {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 500;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  max-width: calc(100% - 80px);
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--bayang-2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tinta-2);
+}
+
+.peta-harga__legenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.peta-harga__legenda i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.peta-harga__mode svg {
+  width: 13px;
+  height: 13px;
+}
+
+.leaflet-tooltip.label-harga {
+  padding: 3px 8px;
+  border: 0;
+  border-radius: var(--r-pil);
+  background: rgba(23, 32, 51, 0.82);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.leaflet-tooltip.label-harga::before {
+  display: none;
+}
+
+.popup-harga {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--tinta-2);
+}
+
+.popup-harga strong {
+  font-size: 14px;
+  color: var(--tinta);
+}
+
+.popup-harga__sub {
+  color: var(--abu);
+}
+
+.popup-harga__harga {
+  margin: 4px 0 2px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.popup-harga__sumber {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--abu);
+}
+
+@media (min-width: 960px) {
+  .peta-harga {
+    display: block;
+    height: calc(100vh - 68px);
+    min-height: 560px;
+  }
+
+  .peta-harga__peta {
+    position: absolute;
+    inset: 0;
+    height: auto;
+  }
+
+  .peta-harga__panel {
+    position: absolute;
+    top: 0;
+    left: 24px;
+    bottom: 16px;
+    z-index: 600;
+    width: 448px;
+    border-radius: 0 0 var(--r-xl) var(--r-xl);
+    border-top: 4px solid var(--mint);
+    box-shadow: var(--bayang-3);
+    overflow: hidden;
+  }
+
+  .peta-harga__daftar {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .peta-harga__legenda {
+    left: 492px;
+    max-width: calc(100% - 568px);
+  }
+}
+
+.peta-harga__peta--jauh .leaflet-tooltip.label-harga {
+  display: none;
+}
+
+.peta-harga__metode {
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--biru-50);
+  color: var(--tinta-2);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.peta-harga__metode summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  color: var(--biru-tua);
+  cursor: pointer;
+}
+
+.peta-harga__metode summary svg {
+  width: 14px;
+  height: 14px;
+}
+
+.peta-harga__metode ul {
+  margin: 8px 0 6px;
+  padding-left: 16px;
+  list-style: disc;
+}
+
+.peta-harga__metode li + li {
+  margin-top: 4px;
+}
+
+.popup-harga a {
+  margin-top: 4px;
+  font-weight: 700;
+}

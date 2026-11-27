@@ -56,6 +56,36 @@ class SkemaCekCepat(BaseModel):
     alamat: Optional[str] = None
 
 
+class SkemaSpesifikasi(BaseModel):
+    kamar_tidur: Optional[int] = Field(default=None, ge=0, le=50)
+    kamar_mandi: Optional[int] = Field(default=None, ge=0, le=50)
+    lebar_depan_m: Optional[float] = Field(default=None, gt=0, le=500)
+    kapasitas_parkir_mobil: Optional[int] = Field(default=None, ge=0, le=50)
+    kondisi_penjual: Optional[Literal["siap_huni", "renovasi_ringan", "renovasi_berat", "belum_tahu"]] = None
+    tahun_renovasi_terakhir: Optional[int] = Field(default=None, ge=1900, le=2100)
+    status_harga: Optional[Literal["nego", "nett", "belum_tahu"]] = None
+    # Faktor penilaian model Rijasa, Sukrawa & Nadiasa (2014) untuk rumah tinggal di Kota Denpasar.
+    bentuk_tanah: Optional[Literal["persegi", "tidak_beraturan", "lainnya"]] = None
+    posisi_tanah: Optional[Literal["interior", "hook", "tusuk_sate", "lainnya"]] = None
+    ketinggian_tanah_m: Optional[float] = Field(default=None, ge=-10, le=10)
+    legalitas_tanah: Optional[Literal["shm", "hgb", "lainnya"]] = None
+    legalitas_bangunan: Optional[Literal["ada", "tidak"]] = None
+    landscape_view: Optional[bool] = None
+    kondisi_lingkungan: Optional[Literal["baik", "sedang", "kurang"]] = None
+    lebar_jalan_depan_m: Optional[float] = Field(default=None, gt=0, le=60)
+    lebar_jalan_menuju_m: Optional[float] = Field(default=None, gt=0, le=60)
+    kondisi_jalan: Optional[Literal["baik", "sedang", "kurang"]] = None
+    citra_lokasi: Optional[Literal["baik_sekali", "biasa", "kurang"]] = None
+    kawasan: Optional[list[Literal["pusat_kota", "kdb30", "perdagangan_jasa", "pariwisata"]]] = Field(default=None, max_length=4)
+    dekat_sutet: Optional[bool] = None
+    dekat_kuburan: Optional[bool] = None
+    dekat_polusi_udara: Optional[bool] = None
+    dekat_polusi_suara: Optional[bool] = None
+    struktur_bangunan: Optional[Literal["permanen", "bertingkat", "semi_permanen"]] = None
+    tampilan_tren: Optional[bool] = None
+    kelas_bahan: Optional[Literal["kelas_1", "kelas_2", "biasa"]] = None
+
+
 class SkemaProperti(BaseModel):
     nama: str = Field(min_length=3, max_length=120)
     alamat: str = Field(min_length=5, max_length=300)
@@ -70,6 +100,7 @@ class SkemaProperti(BaseModel):
     jumlah_lantai: Optional[int] = Field(default=1, ge=1, le=100)
     sumber_iklan: Optional[str] = Field(default=None, max_length=500)
     catatan: Optional[str] = Field(default=None, max_length=1000)
+    spesifikasi: Optional[SkemaSpesifikasi] = None
 
 
 class SkemaUbahProperti(BaseModel):
@@ -81,6 +112,7 @@ class SkemaUbahProperti(BaseModel):
     tahun_bangun: Optional[int] = Field(default=None, ge=1900, le=2100)
     jumlah_lantai: Optional[int] = Field(default=None, ge=1, le=100)
     catatan: Optional[str] = Field(default=None, max_length=1000)
+    spesifikasi: Optional[SkemaSpesifikasi] = None
     tersimpan: Optional[bool] = None
 
 
@@ -223,4 +255,31 @@ class SkemaPengajuanKPR(BaseModel):
         v = v.strip().lower()
         if "@" not in v or "." not in v.split("@")[-1]:
             raise ValueError("Format email tidak valid")
+        return v
+
+
+class SkemaHargaTanah(BaseModel):
+    kode: str = Field(min_length=2, max_length=40, pattern=r"^[a-z0-9-]+$")
+    nama: str = Field(min_length=2, max_length=80)
+    kecamatan: Optional[str] = Field(default=None, max_length=80)
+    kabupaten: str = Field(min_length=2, max_length=80)
+    lat: float = Field(ge=-11, le=6)
+    lng: float = Field(ge=94, le=142)
+    radius_m: int = Field(default=1200, ge=200, le=5000)
+    periode: str = Field(pattern=r"^20\d{2}-(0[1-9]|1[0-2])$")
+    harga_min: int = Field(gt=0)
+    harga_median: int = Field(gt=0)
+    harga_maks: int = Field(gt=0)
+    jumlah_sampel: int = Field(default=0, ge=0)
+    jenis_data: Literal["penawaran", "transaksi", "znt"]
+    sumber: str = Field(min_length=3, max_length=200)
+    url_sumber: Optional[str] = Field(default=None, max_length=500)
+
+    @field_validator("harga_maks")
+    @classmethod
+    def urutan_harga(cls, v, info):
+        minimum = info.data.get("harga_min")
+        median = info.data.get("harga_median")
+        if minimum is not None and median is not None and not (minimum <= median <= v):
+            raise ValueError("Harga harus berurutan: minimum ≤ median ≤ maksimum.")
         return v

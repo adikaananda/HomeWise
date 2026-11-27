@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS properti (
     sumber_iklan TEXT,
     catatan TEXT,
     data_survei TEXT,
+    spesifikasi TEXT,
     tersimpan INTEGER NOT NULL DEFAULT 1,
     laporan_terbuka INTEGER NOT NULL DEFAULT 0,
     pilihan_utama INTEGER NOT NULL DEFAULT 0,
@@ -199,3 +200,41 @@ CREATE INDEX IF NOT EXISTS idx_inspeksi_status ON inspeksi(status);
 CREATE INDEX IF NOT EXISTS idx_log_dibuat ON log_analisis(dibuat);
 CREATE INDEX IF NOT EXISTS idx_foto_properti ON foto_bangunan(properti_id);
 CREATE INDEX IF NOT EXISTS idx_kpr_pengguna ON pengajuan_kpr(pengguna_id);
+
+CREATE TABLE IF NOT EXISTS wilayah_harga_tanah (
+    kode TEXT PRIMARY KEY,
+    nama TEXT NOT NULL,
+    kecamatan TEXT,
+    kabupaten TEXT NOT NULL,
+    lat REAL NOT NULL,
+    lng REAL NOT NULL,
+    radius_m INTEGER NOT NULL DEFAULT 1200
+);
+
+CREATE TABLE IF NOT EXISTS harga_tanah (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    wilayah_kode TEXT NOT NULL REFERENCES wilayah_harga_tanah(kode) ON DELETE CASCADE,
+    periode TEXT NOT NULL,
+    harga_min INTEGER NOT NULL,
+    harga_median INTEGER NOT NULL,
+    harga_maks INTEGER NOT NULL,
+    jumlah_sampel INTEGER NOT NULL DEFAULT 0,
+    jenis_data TEXT NOT NULL CHECK (jenis_data IN ('penawaran', 'transaksi', 'znt')),
+    sumber TEXT NOT NULL,
+    url_sumber TEXT,
+    dibuat TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (wilayah_kode, periode, jenis_data)
+);
+
+CREATE TABLE IF NOT EXISTS indeks_pasar_kota (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kota TEXT NOT NULL,
+    periode TEXT NOT NULL,
+    perubahan_yoy REAL NOT NULL,
+    jenis TEXT NOT NULL,
+    sumber TEXT NOT NULL,
+    url_sumber TEXT,
+    UNIQUE (kota, periode, sumber)
+);
+
+CREATE INDEX IF NOT EXISTS idx_harga_tanah_wilayah ON harga_tanah(wilayah_kode, periode);

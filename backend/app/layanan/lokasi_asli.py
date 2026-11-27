@@ -185,16 +185,104 @@ def _koordinat_elemen(el):
 
 
 def _baca_lebar_jalan(tags, kelas_jalan):
+    """Kembalikan (lebar_m, sumber) agar pengguna tahu lebar jalan diukur atau diperkirakan."""
     width_raw = tags.get("width")
     if width_raw:
         cocok = re.search(r"\d+(?:[.,]\d+)?", str(width_raw))
         if cocok:
             lebar = float(cocok.group(0).replace(",", "."))
-            return round(max(2.0, min(25.0, lebar)), 1)
+            return round(max(2.0, min(25.0, lebar)), 1), "tag_width"
     lanes_raw = tags.get("lanes")
     if lanes_raw and str(lanes_raw).isdigit():
-        return round(max(2.0, min(25.0, int(lanes_raw) * 3.25)), 1)
-    return LEBAR_JALAN_BAWAAN.get(kelas_jalan, 5.0)
+        return round(max(2.0, min(25.0, int(lanes_raw) * 3.25)), 1), "tag_lanes"
+    return LEBAR_JALAN_BAWAAN.get(kelas_jalan, 5.0), "kelas_jalan"
+
+
+LABEL_KELAS_JALAN = {
+    "trunk": "jalan nasional/arteri utama",
+    "primary": "jalan arteri",
+    "secondary": "jalan kolektor",
+    "tertiary": "jalan lokal utama",
+    "residential": "jalan lingkungan/perumahan",
+    "unclassified": "jalan lokal",
+    "living_street": "gang/jalan lingkungan",
+    "service": "jalan akses/gang",
+}
+
+
+def _jarak_ke_garis_m(lat, lng, geometri):
+    """Jarak titik ke polyline (m) memakai proyeksi lokal equirectangular; cukup akurat untuk < 1 km."""
+    if not geometri:
+        return None
+    kx = 111_320.0 * math.cos(math.radians(lat))
+    ky = 110_574.0
+    titik = [((g["lon"] - lng) * kx, (g["lat"] - lat) * ky) for g in geometri if "lat" in g and "lon" in g]
+    if len(titik) == 1:
+        return int(math.hypot(*titik[0]))
+    terbaik = None
+    for (x1, y1), (x2, y2) in zip(titik, titik[1:]):
+        dx, dy = x2 - x1, y2 - y1
+        panjang2 = dx * dx + dy * dy
+        t = 0.0 if panjang2 == 0 else max(0.0, min(1.0, -(x1 * dx + y1 * dy) / panjang2))
+        d = math.hypot(x1 + t * dx, y1 + t * dy)
+        terbaik = d if terbaik is None else min(terbaik, d)
+    return int(round(terbaik)) if terbaik is not None else None
+
+
+class _FaktorSekitar:
+    """Faktor lingkungan untuk model penilaian Denpasar: rekreasi, SUTET, kuburan, industri, akomodasi wisata."""
+
+    def __init__(self):
+        self.rekreasi = None
+        self.sutet = None
+        self.kuburan = None
+        self.industri = None
+        self.akomodasi = set()
+
+    @staticmethod
+    def _min(lama, baru):
+        if baru is None:
+            return lama
+        return baru if lama is None or baru[0] < lama[0] else lama
+
+    def periksa(self, el, tags, lat, lng, el_lat, el_lng):
+        """Catat elemen bila relevan. Kembalikan True bila elemen hanya dipakai di sini."""
+        if tags.get("power") == "line":
+            jarak = _jarak_ke_garis_m(lat, lng, el.get("geometry"))
+            tegangan = str(tags.get("voltage") or "")
+            self.sutet = self._min(self.sutet, (jarak, tags.get("name") or (f"Saluran {tegangan} V" if tegangan else "Saluran udara tegangan tinggi")) if jarak is not None else None)
+            return True
+        if el_lat is None:
+            return False
+        jarak = jarak_haversine_m(lat, lng, el_lat, el_lng)
+        if tags.get("landuse") == "cemetery" or tags.get("amenity") == "grave_yard":
+            self.kuburan = self._min(self.kuburan, (jarak, tags.get("name") or "Kuburan/setra"))
+            return True
+        if tags.get("landuse") == "industrial":
+            self.industri = self._min(self.industri, (jarak, tags.get("name") or "Kawasan industri"))
+            return False
+        if tags.get("tourism") in ("hotel", "guest_house", "hostel", "motel", "apartment", "resort"):
+            if jarak <= 500:
+                self.akomodasi.add(el.get("id"))
+            return True
+        if (tags.get("leisure") in ("park", "beach_resort") or tags.get("natural") == "beach"
+                or tags.get("tourism") in ("attraction", "theme_park", "zoo", "museum")):
+            nama = tags.get("name") or ("Pantai" if tags.get("natural") == "beach" else "Taman")
+            self.rekreasi = self._min(self.rekreasi, (jarak, nama))
+            return True
+        return False
+
+    def hasil(self):
+        return {
+            "rekreasi_m": self.rekreasi[0] if self.rekreasi else None,
+            "rekreasi_nama": self.rekreasi[1] if self.rekreasi else None,
+            "sutet_m": self.sutet[0] if self.sutet else None,
+            "sutet_nama": self.sutet[1] if self.sutet else None,
+            "kuburan_m": self.kuburan[0] if self.kuburan else None,
+            "industri_m": self.industri[0] if self.industri else None,
+            "akomodasi_500m": len(self.akomodasi),
+            "sumber": "OpenStreetMap (Overpass)",
+        }
 
 
 def _tentukan_karakter_kawasan(landuses, jumlah_ekonomi, jumlah_hunian):
@@ -304,6 +392,8 @@ def _ambil_osm_photon(lat, lng, radius_m=5000):
     aksesibilitas = {
         "jarak_jalan_utama_m": jarak_utama,
         "lebar_jalan_depan_m": 6.0 if jarak_utama <= 250 else 5.0,
+        "sumber_lebar_jalan": "bawaan",
+        "kelas_jalan_depan": None,
         "kepadatan_lalu_lintas": _kepadatan_dari(jarak_utama, len(poi_unik)),
     }
     karakter_kawasan = _tentukan_karakter_kawasan(set(), jumlah_ekonomi, jumlah_hunian)
@@ -329,8 +419,16 @@ def ambil_osm(lat, lng, radius_m=5000):
       way(around:{r_dekat},{lat},{lng})["highway"~"^(trunk|primary|secondary)$"];
       way(around:120,{lat},{lng})["highway"~"^(trunk|primary|secondary|tertiary|residential|living_street|unclassified|service)$"];
       nwr(around:500,{lat},{lng})["landuse"~"^(residential|commercial|retail|industrial)$"];
+      nwr(around:{r_sedang},{lat},{lng})["leisure"~"^(park|beach_resort)$"]["name"];
+      nwr(around:{r_sedang},{lat},{lng})["tourism"~"^(attraction|theme_park|zoo|museum)$"]["name"];
+      nwr(around:{r_sedang},{lat},{lng})["natural"="beach"];
+      nwr(around:500,{lat},{lng})["landuse"="cemetery"];
+      nwr(around:500,{lat},{lng})["amenity"="grave_yard"];
+      nwr(around:500,{lat},{lng})["tourism"~"^(hotel|guest_house|hostel|motel|apartment|resort)$"];
     );
     out tags center qt;
+    way(around:600,{lat},{lng})["power"="line"];
+    out tags geom qt;
     """
 
     elemen = None
@@ -353,12 +451,14 @@ def ambil_osm(lat, lng, radius_m=5000):
             sim["aksesibilitas"],
             sim["karakter_kawasan"],
             ["Server Overpass OSM & Photon gagal diakses, daftar fasilitas & aksesibilitas memakai cadangan simulasi."],
+            sim.get("faktor_sekitar"),
         )
 
     poi_unik = {}
     jarak_jalan_utama = []
     jalan_depan = []
     landuses = set()
+    sekitar = _FaktorSekitar()
     jumlah_ekonomi = 0
     jumlah_hunian = 0
 
@@ -368,6 +468,8 @@ def ambil_osm(lat, lng, radius_m=5000):
 
         if "landuse" in tags:
             landuses.add(tags["landuse"])
+        if sekitar.periksa(el, tags, lat, lng, el_lat, el_lng):
+            continue
 
         highway = tags.get("highway")
         if el.get("type") == "way" and highway and el_lat is not None:
@@ -403,20 +505,23 @@ def ambil_osm(lat, lng, radius_m=5000):
     fasilitas = _saring_poi(poi_unik)
 
     jarak_utama = min(jarak_jalan_utama) if jarak_jalan_utama else 1200
+    kelas_terdekat = None
     if jalan_depan:
         jalan_depan.sort(key=lambda j: j[0])
         _, kelas_terdekat, tags_terdekat = jalan_depan[0]
-        lebar_depan = _baca_lebar_jalan(tags_terdekat, kelas_terdekat)
+        lebar_depan, sumber_lebar = _baca_lebar_jalan(tags_terdekat, kelas_terdekat)
     else:
-        lebar_depan = 5.0
+        lebar_depan, sumber_lebar = 5.0, "bawaan"
 
     aksesibilitas = {
         "jarak_jalan_utama_m": jarak_utama,
         "lebar_jalan_depan_m": lebar_depan,
+        "sumber_lebar_jalan": sumber_lebar,
+        "kelas_jalan_depan": LABEL_KELAS_JALAN.get(kelas_terdekat) if kelas_terdekat else None,
         "kepadatan_lalu_lintas": _kepadatan_dari(jarak_utama, len(poi_unik)),
     }
     karakter_kawasan = _tentukan_karakter_kawasan(landuses, jumlah_ekonomi, jumlah_hunian)
-    return fasilitas, aksesibilitas, karakter_kawasan, []
+    return fasilitas, aksesibilitas, karakter_kawasan, [], sekitar.hasil()
 
 
 def analisis_lokasi(lat, lng, alamat=None, radius_m=5000):
@@ -428,7 +533,8 @@ def analisis_lokasi(lat, lng, alamat=None, radius_m=5000):
 
         risiko, cat_risiko = f_risiko.result()
         topografi, cat_topo = f_topo.result()
-        fasilitas, aksesibilitas, karakter_kawasan, cat_osm = f_osm.result()
+        fasilitas, aksesibilitas, karakter_kawasan, cat_osm, *lain = f_osm.result()
+        faktor_sekitar = lain[0] if lain else None
 
     keterbatasan = [
         "Data risiko InaRISK BNPB berupa indeks regional, bukan survei geoteknik di lokasi.",
@@ -444,5 +550,6 @@ def analisis_lokasi(lat, lng, alamat=None, radius_m=5000):
         "aksesibilitas": aksesibilitas,
         "fasilitas": fasilitas,
         "karakter_kawasan": karakter_kawasan,
+        "faktor_sekitar": faktor_sekitar,
         "keterbatasan_data": keterbatasan,
     }
