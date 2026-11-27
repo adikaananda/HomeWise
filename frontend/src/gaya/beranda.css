@@ -508,6 +508,78 @@
   border: 1px solid var(--garis);
 }
 
+.pembiayaan-promo {
+  display: grid;
+  gap: 32px;
+  align-items: center;
+}
+
+.pembiayaan-promo h2 {
+  margin-block: 10px 12px;
+  font-size: clamp(1.5rem, 1.25rem + 1vw, 1.9rem);
+}
+
+.pembiayaan-promo > div:first-child p {
+  max-width: 58ch;
+  margin-bottom: 22px;
+}
+
+.pembiayaan-promo__panel {
+  display: grid;
+  gap: 16px;
+  padding: 26px;
+  border: 1px solid var(--garis);
+  border-radius: var(--r-md);
+  background: var(--putih);
+}
+
+.pembiayaan-promo__panel > span {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-sm);
+  background: var(--biru);
+  color: #fff;
+}
+
+.pembiayaan-promo__panel > span svg {
+  width: 24px;
+  height: 24px;
+}
+
+.pembiayaan-promo__panel > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--garis);
+}
+
+.pembiayaan-promo__panel small {
+  color: var(--abu);
+}
+
+.pembiayaan-promo__panel p {
+  display: flex;
+  gap: 8px;
+  color: var(--abu);
+  font-size: var(--teks-xs);
+}
+
+.pembiayaan-promo__panel p svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+@media (min-width: 900px) {
+  .pembiayaan-promo {
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 64px;
+  }
+}
+
 .alur__nomor {
   display: grid;
   place-items: center;

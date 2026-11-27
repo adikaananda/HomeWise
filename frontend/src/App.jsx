@@ -9,6 +9,7 @@ import { RiwayatPembayaran, StatusPembayaran } from "./halaman/pencari/Pembayara
 import ModeSurvei from "./halaman/pencari/ModeSurvei";
 import PropertiBaru from "./halaman/pencari/PropertiBaru";
 import PropertiSaya from "./halaman/pencari/PropertiSaya";
+import SimulasiKPR from "./halaman/pencari/SimulasiKPR";
 import { Daftar, Masuk } from "./halaman/publik/Autentikasi";
 import Beranda from "./halaman/publik/Beranda";
 import Harga, { TidakDitemukan } from "./halaman/publik/Harga";
@@ -31,6 +32,7 @@ const RUTE = [
   { pola: "/app/properti/:id", halaman: DetailProperti, peran: [...PENCARI, "analis"] },
   { pola: "/app/properti/:id/survei", halaman: ModeSurvei, peran: PENCARI, polos: true },
   { pola: "/app/bandingkan", halaman: Bandingkan, peran: PENCARI },
+  { pola: "/app/kpr/:id", halaman: SimulasiKPR, peran: PENCARI },
   { pola: "/app/pembayaran", halaman: RiwayatPembayaran, peran: PENCARI },
   { pola: "/app/pembayaran/:orderId", halaman: StatusPembayaran, peran: PENCARI },
 

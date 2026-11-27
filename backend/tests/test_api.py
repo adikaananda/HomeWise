@@ -35,8 +35,72 @@ def foto_uji():
 def test_daftar_dan_masuk(klien):
     respon = klien.post("/api/auth/daftar", json={"nama": "Sari", "email": "sari@contoh.id", "sandi": "rahasia123"})
     assert respon.status_code == 201
+    assert respon.json["data"]["pengguna"]["kredit_laporan"] == 1
     assert klien.post("/api/auth/daftar", json={"nama": "Sari", "email": "sari@contoh.id", "sandi": "rahasia123"}).status_code == 409
     assert klien.post("/api/auth/masuk", json={"email": "sari@contoh.id", "sandi": "salah123"}).status_code == 401
+
+
+def test_pilihan_utama_dan_pengajuan_kpr_btn(klien):
+    header = masuk(klien, "demo@homewise.id", "demo12345")
+    pilih = klien.post("/api/properti/1/pilihan-utama", headers=header)
+    assert pilih.status_code == 200
+    assert pilih.json["data"]["properti"]["pilihan_utama"] == 1
+
+    pilih_lain = klien.post("/api/properti/2/pilihan-utama", headers=header)
+    assert pilih_lain.status_code == 200
+    assert pilih_lain.json["data"]["properti"]["pilihan_utama"] == 1
+    assert klien.get("/api/properti/1", headers=header).json["data"]["properti"]["pilihan_utama"] == 0
+
+    ajukan = klien.post("/api/kpr/ajukan-btn", headers=header, json={
+        "properti_id": 1,
+        "program_kpr": "promo_fixed",
+        "sertakan_renovasi": True,
+        "persen_dp": 15,
+        "tenor_tahun": 20,
+        "nama_pemohon": "Dimas Pratama",
+        "telepon": "081234567890",
+        "email": "demo@homewise.id",
+        "status_pekerjaan": "karyawan_tetap",
+        "penghasilan_bulanan": 25000000,
+        "kota_properti": "Tangerang Selatan",
+        "pilihan_layanan": "konsultasi",
+    })
+    assert ajukan.status_code == 201
+    data_kpr = ajukan.json["data"]
+    assert data_kpr["mitra_bank"] == "BTN"
+    assert data_kpr["kode_rujukan"].startswith("HW-KPR-")
+    assert data_kpr["plafon_kpr"] > 0
+    assert data_kpr["estimasi_angsuran"] > 0
+    assert klien.get("/api/properti/1", headers=header).json["data"]["properti"]["pilihan_utama"] == 1
+
+    sim = klien.post("/api/kpr/simulasi", headers=header, json={
+        "properti_id": 1,
+        "program_kpr": "promo_fixed",
+        "persen_dp": 15,
+        "tenor_tahun": 20,
+        "sertakan_renovasi": True,
+    })
+    assert sim.status_code == 200
+    sim_data = sim.json["data"]
+    assert sim_data["estimasi_angsuran"] == data_kpr["estimasi_angsuran"]
+    assert sim_data["biaya_awal"]["total"] > sim_data["biaya_awal"]["uang_muka"]
+    assert sim_data["biaya_renovasi"] > 0
+
+    sim_manual = klien.post("/api/kpr/simulasi", headers=header, json={
+        "properti_id": 2,
+        "program_kpr": "promo_fixed",
+        "persen_dp": 15,
+        "tenor_tahun": 20,
+        "sertakan_renovasi": True,
+        "biaya_renovasi_manual": 25_000_000,
+    })
+    assert sim_manual.status_code == 200
+    assert sim_manual.json["data"]["biaya_renovasi"] == 25_000_000
+
+    riwayat = klien.get("/api/kpr/riwayat", headers=header)
+    assert riwayat.status_code == 200
+    assert len(riwayat.json["data"]) == 1
+    assert riwayat.json["data"][0]["properti_id"] == 1
 
 
 def test_akses_tanpa_token_ditolak(klien):

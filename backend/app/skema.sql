@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS pengguna (
     peran TEXT NOT NULL DEFAULT 'pencari' CHECK (peran IN ('pencari', 'analis', 'admin')),
     telepon TEXT,
     perusahaan TEXT,
-    kredit_laporan INTEGER NOT NULL DEFAULT 0,
+    kredit_laporan INTEGER NOT NULL DEFAULT 1,
     aktif INTEGER NOT NULL DEFAULT 1,
     dibuat TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS properti (
     data_survei TEXT,
     tersimpan INTEGER NOT NULL DEFAULT 1,
     laporan_terbuka INTEGER NOT NULL DEFAULT 0,
+    pilihan_utama INTEGER NOT NULL DEFAULT 0,
     dibuat TEXT NOT NULL DEFAULT (datetime('now')),
     diperbarui TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -164,8 +165,37 @@ CREATE TABLE IF NOT EXISTS cache_llm (
     dibuat TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS pengajuan_kpr (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pengguna_id INTEGER NOT NULL REFERENCES pengguna(id) ON DELETE CASCADE,
+    properti_id INTEGER NOT NULL REFERENCES properti(id) ON DELETE CASCADE,
+    mitra_bank TEXT NOT NULL DEFAULT 'BTN',
+    program_kpr TEXT NOT NULL,
+    harga_properti INTEGER NOT NULL,
+    biaya_renovasi INTEGER NOT NULL DEFAULT 0,
+    persen_dp REAL NOT NULL,
+    nominal_dp INTEGER NOT NULL,
+    plafon_kpr INTEGER NOT NULL,
+    tenor_tahun INTEGER NOT NULL,
+    suku_bunga REAL NOT NULL,
+    estimasi_angsuran INTEGER NOT NULL,
+    nama_pemohon TEXT NOT NULL,
+    telepon TEXT NOT NULL,
+    email TEXT NOT NULL,
+    status_pekerjaan TEXT NOT NULL,
+    penghasilan_bulanan INTEGER NOT NULL DEFAULT 0,
+    kota TEXT,
+    kota_properti TEXT,
+    pilihan_layanan TEXT DEFAULT 'konsultasi',
+    kode_rujukan TEXT,
+    status TEXT NOT NULL DEFAULT 'diajukan' CHECK (status IN ('diajukan', 'dihubungi', 'proses_bank', 'disetujui', 'ditolak')),
+    catatan TEXT,
+    dibuat TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_properti_pengguna ON properti(pengguna_id);
 CREATE INDEX IF NOT EXISTS idx_pembayaran_pengguna ON pembayaran(pengguna_id);
 CREATE INDEX IF NOT EXISTS idx_inspeksi_status ON inspeksi(status);
 CREATE INDEX IF NOT EXISTS idx_log_dibuat ON log_analisis(dibuat);
 CREATE INDEX IF NOT EXISTS idx_foto_properti ON foto_bangunan(properti_id);
+CREATE INDEX IF NOT EXISTS idx_kpr_pengguna ON pengajuan_kpr(pengguna_id);

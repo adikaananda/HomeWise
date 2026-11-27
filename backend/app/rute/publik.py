@@ -11,6 +11,7 @@ from ..layanan.konstanta import (
     PAKET,
     PERTANYAAN_SURVEI,
     PRIORITAS,
+    PROGRAM_KPR_BTN,
     SUMBER_FOTO,
     TUJUAN,
 )
@@ -48,6 +49,7 @@ def konfigurasi():
         "pertanyaan_survei": PERTANYAAN_SURVEI,
         "prioritas": PRIORITAS,
         "paket": [{"kode": k, **v} for k, v in PAKET.items()],
+        "program_kpr_btn": PROGRAM_KPR_BTN,
         "midtrans": {
             "mode": midtrans.mode(),
             "client_key": current_app.config["MIDTRANS_CLIENT_KEY"],

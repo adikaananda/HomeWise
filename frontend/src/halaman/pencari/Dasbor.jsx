@@ -1,7 +1,7 @@
-import { LuCamera, LuChartColumn, LuChevronRight, LuClipboardCheck, LuFileText, LuHouse, LuLockOpen, LuMapPin, LuPlus, LuTicket } from "react-icons/lu";
+import { LuArrowRight, LuCamera, LuChartColumn, LuChevronRight, LuClipboardCheck, LuFileText, LuHouse, LuLockOpen, LuMapPin, LuPlus, LuStar, LuTicket } from "react-icons/lu";
 import { KartuProperti } from "../../komponen/KartuProperti";
 import { KepalaHalaman } from "../../komponen/tata-letak/Aplikasi";
-import { GalatMuat, Kartu, KerangkaHalaman, Kosong, Lencana, Statistik, Tombol } from "../../komponen/ui";
+import { GalatMuat, Kartu, KerangkaHalaman, Kosong, Lencana, Pemberitahuan, Statistik, Tombol } from "../../komponen/ui";
 import { api } from "../../lib/api";
 import { rupiah, tanggal, kapital } from "../../lib/format";
 import { useData, useJudul } from "../../lib/hooks";
@@ -52,6 +52,7 @@ export default function Dasbor() {
   const { pengguna, statistik, properti_terbaru: properti, pembayaran_terbaru: pembayaran } = data;
   const namaDepan = pengguna.nama.split(" ")[0];
   const namaPaket = (kode) => konfigurasi.paket.find((p) => p.kode === kode)?.nama || kode;
+  const pilihanUtama = properti.find((p) => p.pilihan_utama);
 
   return (
     <>
@@ -64,6 +65,34 @@ export default function Dasbor() {
           </Tombol>
         }
       />
+
+      {pengguna.kredit_laporan > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <Pemberitahuan
+            nada="sukses"
+            judul={pengguna.kredit_laporan === 1 ? "Anda memiliki 1 Kredit Free Trial" : `Anda memiliki ${pengguna.kredit_laporan} Kredit Laporan`}
+            aksi={<Tombol ke="/app/properti/baru" ukuran="kecil">Analisis rumah pertama</Tombol>}
+          >
+            Gunakan kredit untuk membuka Laporan Lengkap, termasuk analisis foto dan estimasi renovasi.
+          </Pemberitahuan>
+        </div>
+      )}
+
+      {pilihanUtama && (
+        <div style={{ marginBottom: 20 }}>
+          <Pemberitahuan
+            nada="info"
+            judul={`Rumah pilihan utama: ${pilihanUtama.nama}`}
+            aksi={
+              <Tombol ke={`/app/kpr/${pilihanUtama.id}`} ukuran="kecil" ikon={LuStar} ikonKanan={LuArrowRight}>
+                Simulasi KPR
+              </Tombol>
+            }
+          >
+            Kandidat terbaik sudah ditandai. Hitung skenario DP, tenor, dan estimasi cicilan bulanan Anda.
+          </Pemberitahuan>
+        </div>
+      )}
 
       <div className="kisi-4 statistik-panel">
         <Kartu rapat>

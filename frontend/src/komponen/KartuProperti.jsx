@@ -1,4 +1,4 @@
-import { LuBookmark, LuBookmarkCheck, LuLockOpen, LuMapPin } from "react-icons/lu";
+import { LuBookmark, LuBookmarkCheck, LuLockOpen, LuMapPin, LuStar } from "react-icons/lu";
 import { urlBerkas } from "../lib/api";
 import { rupiahRingkas } from "../lib/format";
 import { labelTujuan, useKonfigurasi } from "../lib/konfigurasi";
@@ -16,6 +16,11 @@ export function KartuProperti({ properti, dipilih, onPilih, onSimpan }) {
       <div className="kartu-properti__media">
         {sampul ? <img src={sampul} alt="" loading="lazy" /> : <IlustrasiPeta />}
         <div className="kartu-properti__lencana">
+          {properti.pilihan_utama ? (
+            <Lencana nada="sukses" ikon={LuStar}>
+              Pilihan utama
+            </Lencana>
+          ) : null}
           <Lencana nada="netral">{labelTujuan(konfigurasi, properti.tujuan)}</Lencana>
           {properti.laporan_terbuka ? (
             <Lencana nada="sukses" ikon={LuLockOpen}>

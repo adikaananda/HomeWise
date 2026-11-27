@@ -123,11 +123,15 @@ function Hero() {
     <section className="hero">
       <div className="wadah hero__isi">
         <div className="hero__teks">
-          <span className="hero__eyebrow">Keputusan properti berbasis data</span>
-          <h1 className="hero__judul">Kenali properti sebelum Anda menawar.</h1>
+          <span className="hero__eyebrow">1 Laporan Lengkap gratis untuk pengguna baru</span>
+          <h1 className="hero__judul">Dari cek rumah sampai siap menghitung KPR.</h1>
           <p className="hero__deskripsi">
-            Periksa lokasi, risiko lingkungan, kondisi bangunan, dan estimasi renovasi dalam satu alur yang mudah dipahami.
+            Nilai lokasi, deteksi kerusakan, hitung renovasi, lalu simulasikan pembiayaan secara transparan. Coba gratis untuk properti pertama.
           </p>
+          <div className="baris" style={{ flexWrap: "wrap" }}>
+            <Tombol ke="/daftar" ukuran="besar" ikonKanan={LuArrowRight}>Mulai analisis gratis</Tombol>
+            <a href="#pembiayaan" className="tombol tombol--sekunder tombol--besar"><LuLandmark aria-hidden="true" />Lihat alur KPR</a>
+          </div>
 
           <form className="cek-cepat" onSubmit={kirim} noValidate>
             <label className="sr-only" htmlFor="cek-alamat">
@@ -291,7 +295,7 @@ const LANGKAH = [
   { judul: "Cek lokasi dari rumah", teks: "Tempel alamat dari iklan. Risiko bencana, fasilitas, dan skor kelayakan keluar gratis untuk menyaring kandidat." },
   { judul: "Survei dengan panduan foto", teks: "Datang ke properti dan buka mode survei di HP. Anda yang memotret, jadi kerusakan tidak disembunyikan." },
   { judul: "Lihat kerusakan & biaya", teks: "AI menandai kerusakan, lalu HomeWise menghitung prioritas perbaikan, material, dan total investasi." },
-  { judul: "Tawar dengan data", teks: "Bawa laporan PDF ke negosiasi, bandingkan kandidat, atau pesan analis untuk validasi di lokasi." },
+  { judul: "Pilih rumah & hitung KPR", teks: "Tandai kandidat terbaik, atur DP dan tenor, lalu lihat angsuran termasuk opsi kebutuhan renovasi." },
 ];
 
 function CaraKerja() {
@@ -310,6 +314,27 @@ function CaraKerja() {
             </li>
           ))}
         </ol>
+      </div>
+    </section>
+  );
+}
+
+function Pembiayaan() {
+  return (
+    <section className="bagian bagian--biru" id="pembiayaan">
+      <div className="wadah pembiayaan-promo">
+        <div>
+          <span className="hero__eyebrow">Simulasi pembiayaan indikatif</span>
+          <h2>Harga rumah dan renovasi terlihat dalam satu skenario</h2>
+          <p className="teks-redup">Pilih rumah utama, bandingkan program bunga BTN dari asumsi PRD, lalu lihat angsuran, penghasilan minimum, dan biaya awal sebelum meminta konsultasi.</p>
+          <Tombol ke="/daftar" ikonKanan={LuArrowRight}>Coba dengan properti Anda</Tombol>
+        </div>
+        <div className="pembiayaan-promo__panel">
+          <span><LuLandmark aria-hidden="true" /></span>
+          <div><small>Contoh plafon</small><strong>Rp680 juta</strong></div>
+          <div><small>Estimasi angsuran</small><strong>Rp4,0 juta / bulan</strong></div>
+          <p><LuShieldCheck aria-hidden="true" />Indikatif, bukan penawaran atau persetujuan kredit bank.</p>
+        </div>
       </div>
     </section>
   );
@@ -448,6 +473,7 @@ export default function Beranda() {
       <Fitur />
       <AnalisisTujuan />
       <CaraKerja />
+      <Pembiayaan />
       <Segmen3 />
       <Laporan />
       <Banner />

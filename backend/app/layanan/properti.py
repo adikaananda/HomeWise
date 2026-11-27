@@ -206,6 +206,10 @@ def detail_lengkap(properti, pengguna):
     foto = ambil_foto(properti["id"])
     bangunan = db.satu("SELECT * FROM analisis_bangunan WHERE properti_id = ?", (properti["id"],), ("temuan",))
     inspeksi = ambil_inspeksi_aktif(properti["id"])
+    pengajuan_kpr = db.satu(
+        "SELECT * FROM pengajuan_kpr WHERE properti_id = ? ORDER BY id DESC LIMIT 1",
+        (properti["id"],),
+    )
 
     lokasi_data = None
     if lok:
@@ -225,6 +229,7 @@ def detail_lengkap(properti, pengguna):
         "jumlah_foto": len(foto),
         "survei": {**survei, "kelengkapan": kelengkapan},
         "inspeksi": inspeksi,
+        "pengajuan_kpr": pengajuan_kpr,
         "bangunan": None,
         "biaya": None,
         "investasi": None,

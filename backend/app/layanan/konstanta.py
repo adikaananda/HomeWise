@@ -145,6 +145,12 @@ PAKET = {
         "deskripsi": "5 kredit laporan lengkap yang bisa dipakai untuk properti mana saja.",
         "butuh_properti": False,
     },
+    "paket_komparasi": {
+        "nama": "Paket Komparasi 3 Laporan",
+        "harga": 119_000,
+        "deskripsi": "3 kredit laporan lengkap untuk membandingkan kandidat properti.",
+        "butuh_properti": False,
+    },
     "inspeksi_profesional": {
         "nama": "Inspeksi Profesional",
         "harga": 750_000,
@@ -160,6 +166,49 @@ ASUMSI_TRANSAKSI = {
     "biaya_administrasi": 2_500_000,
     "tarif_kontingensi": 0.10,
 }
+
+PROGRAM_KPR_BTN = [
+    {
+        "kode": "promo_fixed",
+        "nama": "Promo Fixed BTN",
+        "suku_bunga": 3.75,
+        "tenor_maks": 30,
+        "dp_min_persen": 10,
+        "keterangan": "Bunga promo fixed indikatif untuk pembeli rumah pertama dengan DP ringan.",
+    },
+    {
+        "kode": "platinum",
+        "nama": "KPR Platinum BTN",
+        "suku_bunga": 5.50,
+        "tenor_maks": 25,
+        "dp_min_persen": 15,
+        "keterangan": "Plafon fleksibel untuk rumah tinggal, rumah kedua, ruko, atau properti komersial.",
+    },
+    {
+        "kode": "btn_gaess",
+        "nama": "KPR BTN Gaess (Pembeli Pertama)",
+        "suku_bunga": 3.75,
+        "tenor_maks": 30,
+        "dp_min_persen": 10,
+        "keterangan": "Bunga promo fixed 3 tahun untuk milenial & pembeli rumah pertama dengan DP ringan.",
+    },
+    {
+        "kode": "btn_platinum",
+        "nama": "KPR BTN Platinum",
+        "suku_bunga": 4.75,
+        "tenor_maks": 25,
+        "dp_min_persen": 15,
+        "keterangan": "Plafon fleksibel untuk rumah tinggal, rumah kedua, ruko, atau properti komersial.",
+    },
+    {
+        "kode": "btn_renovasi",
+        "nama": "KPR BTN + Top-Up Renovasi",
+        "suku_bunga": 5.25,
+        "tenor_maks": 20,
+        "dp_min_persen": 15,
+        "keterangan": "Gabungkan harga pembelian rumah dan estimasi biaya renovasi HomeWise dalam satu cicilan KPR.",
+    },
+]
 
 
 def label_kategori_skor(skor):

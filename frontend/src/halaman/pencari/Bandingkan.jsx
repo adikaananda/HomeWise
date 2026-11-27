@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { LuGitCompare, LuLock, LuTrophy } from "react-icons/lu";
+import { LuArrowRight, LuGitCompare, LuLock, LuStar, LuTrophy } from "react-icons/lu";
 import { KepalaHalaman } from "../../komponen/tata-letak/Aplikasi";
-import { CincinSkor, GalatMuat, Kartu, KerangkaHalaman, Kosong, LencanaLevel, Tombol } from "../../komponen/ui";
+import { CincinSkor, GalatMuat, Kartu, KerangkaHalaman, Kosong, Lencana, LencanaLevel, Tombol } from "../../komponen/ui";
 import { api } from "../../lib/api";
 import { rupiahRingkas } from "../../lib/format";
 import { useData, useJudul } from "../../lib/hooks";
 import { labelTujuan, useKonfigurasi } from "../../lib/konfigurasi";
+import { useNotifikasi } from "../../lib/notifikasi";
 import { Tautan, useRouter } from "../../lib/router";
 
 function PemilihProperti() {
@@ -53,7 +54,7 @@ function terbaik(nilai, arah) {
   return arah === "tinggi" ? Math.max(...valid) : Math.min(...valid);
 }
 
-function TabelBanding({ daftar }) {
+function TabelBanding({ daftar, onPilih, proses }) {
   const konfigurasi = useKonfigurasi();
   const terkunci = <LuLock aria-label="Terkunci" style={{ width: 16, height: 16, color: "var(--abu-muda)" }} />;
 
@@ -87,6 +88,7 @@ function TabelBanding({ daftar }) {
                 <span className="teks-mini teks-redup" style={{ display: "block", fontWeight: 500 }}>
                   {labelTujuan(konfigurasi, d.properti.tujuan)}
                 </span>
+                {d.properti.pilihan_utama ? <Lencana nada="sukses" ikon={LuStar}>Pilihan utama</Lencana> : null}
               </th>
             ))}
           </tr>
@@ -116,6 +118,22 @@ function TabelBanding({ daftar }) {
             </tr>
           ))}
         </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row">Keputusan</th>
+            {daftar.map((d) => (
+              <td key={d.properti.id}>
+                {d.properti.pilihan_utama ? (
+                  <Tombol ke={`/app/kpr/${d.properti.id}`} ukuran="kecil" ikonKanan={LuArrowRight}>Simulasi KPR</Tombol>
+                ) : (
+                  <Tombol varian="sekunder" ukuran="kecil" ikon={LuStar} disabled={proses} onClick={() => onPilih(d.properti.id)}>
+                    Saya srek
+                  </Tombol>
+                )}
+              </td>
+            ))}
+          </tr>
+        </tfoot>
       </table>
     </div>
   );
@@ -123,9 +141,23 @@ function TabelBanding({ daftar }) {
 
 export default function Bandingkan() {
   useJudul("Bandingkan properti");
+  const beriTahu = useNotifikasi();
   const { query } = useRouter();
   const ids = query.get("ids") || "";
-  const { data, galat, memuat, muatUlang } = useData(() => (ids ? api.get(`/properti/bandingkan?ids=${ids}`) : Promise.resolve(null)), [ids]);
+  const [proses, setProses] = useState(false);
+  const { data, setData, galat, memuat, muatUlang } = useData(() => (ids ? api.get(`/properti/bandingkan?ids=${ids}`) : Promise.resolve(null)), [ids]);
+  const pilih = async (id) => {
+    setProses(true);
+    try {
+      await api.post(`/properti/${id}/pilihan-utama`);
+      setData((lama) => lama.map((d) => ({ ...d, properti: { ...d.properti, pilihan_utama: d.properti.id === id } })));
+      beriTahu("Rumah pilihan utama diperbarui.");
+    } catch (e) {
+      beriTahu(e.message, "galat");
+    } finally {
+      setProses(false);
+    }
+  };
 
   return (
     <>
@@ -134,7 +166,7 @@ export default function Bandingkan() {
         deskripsi="Lihat kandidat berdampingan. Nilai terbaik di setiap kriteria ditandai."
         aksi={ids && <Tombol varian="sekunder" ke="/app/bandingkan">Ganti pilihan</Tombol>}
       />
-      {!ids ? <PemilihProperti /> : memuat ? <KerangkaHalaman /> : galat ? <GalatMuat galat={galat} onCobaLagi={muatUlang} /> : <TabelBanding daftar={data} />}
+      {!ids ? <PemilihProperti /> : memuat ? <KerangkaHalaman /> : galat ? <GalatMuat galat={galat} onCobaLagi={muatUlang} /> : <TabelBanding daftar={data} onPilih={pilih} proses={proses} />}
     </>
   );
 }

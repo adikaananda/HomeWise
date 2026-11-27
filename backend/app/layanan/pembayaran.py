@@ -77,6 +77,9 @@ def _terapkan_manfaat(pembayaran):
     if pembayaran["paket"] == "paket_hemat":
         db.eksekusi("UPDATE pengguna SET kredit_laporan = kredit_laporan + 5 WHERE id = ?", (pembayaran["pengguna_id"],))
         return
+    if pembayaran["paket"] == "paket_komparasi":
+        db.eksekusi("UPDATE pengguna SET kredit_laporan = kredit_laporan + 3 WHERE id = ?", (pembayaran["pengguna_id"],))
+        return
 
     if pembayaran["properti_id"]:
         db.eksekusi("UPDATE properti SET laporan_terbuka = 1 WHERE id = ?", (pembayaran["properti_id"],))

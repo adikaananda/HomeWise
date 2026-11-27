@@ -4,7 +4,7 @@ from pathlib import Path
 
 from .layanan.ahsp import MATERIAL_BAWAAN
 
-VERSI_TERBARU = 3
+VERSI_TERBARU = 5
 
 
 def _ada_tabel(koneksi, nama):
@@ -59,7 +59,49 @@ def _ke_versi_3(koneksi):
     """)
 
 
-MIGRASI = {2: _ke_versi_2, 3: _ke_versi_3}
+def _ke_versi_4(koneksi):
+    if "pilihan_utama" not in _kolom(koneksi, "properti"):
+        koneksi.execute("ALTER TABLE properti ADD COLUMN pilihan_utama INTEGER NOT NULL DEFAULT 0")
+    koneksi.executescript("""
+        CREATE TABLE IF NOT EXISTS pengajuan_kpr (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pengguna_id INTEGER NOT NULL REFERENCES pengguna(id) ON DELETE CASCADE,
+            properti_id INTEGER NOT NULL REFERENCES properti(id) ON DELETE CASCADE,
+            mitra_bank TEXT NOT NULL DEFAULT 'BTN',
+            program_kpr TEXT NOT NULL,
+            harga_properti INTEGER NOT NULL,
+            biaya_renovasi INTEGER NOT NULL DEFAULT 0,
+            persen_dp REAL NOT NULL,
+            nominal_dp INTEGER NOT NULL,
+            plafon_kpr INTEGER NOT NULL,
+            tenor_tahun INTEGER NOT NULL,
+            suku_bunga REAL NOT NULL,
+            estimasi_angsuran INTEGER NOT NULL,
+            nama_pemohon TEXT NOT NULL,
+            telepon TEXT NOT NULL,
+            email TEXT NOT NULL,
+            status_pekerjaan TEXT NOT NULL,
+            penghasilan_bulanan INTEGER NOT NULL DEFAULT 0,
+            kota TEXT,
+            status TEXT NOT NULL DEFAULT 'diajukan' CHECK (status IN ('diajukan', 'dihubungi', 'proses_bank', 'disetujui', 'ditolak')),
+            catatan TEXT,
+            dibuat TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_kpr_pengguna ON pengajuan_kpr(pengguna_id);
+    """)
+
+
+def _ke_versi_5(koneksi):
+    kolom_kpr = _kolom(koneksi, "pengajuan_kpr")
+    if "kota_properti" not in kolom_kpr:
+        koneksi.execute("ALTER TABLE pengajuan_kpr ADD COLUMN kota_properti TEXT")
+    if "pilihan_layanan" not in kolom_kpr:
+        koneksi.execute("ALTER TABLE pengajuan_kpr ADD COLUMN pilihan_layanan TEXT DEFAULT 'konsultasi'")
+    if "kode_rujukan" not in kolom_kpr:
+        koneksi.execute("ALTER TABLE pengajuan_kpr ADD COLUMN kode_rujukan TEXT")
+
+
+MIGRASI = {2: _ke_versi_2, 3: _ke_versi_3, 4: _ke_versi_4, 5: _ke_versi_5}
 
 
 def jalankan(jalur_db):

@@ -7,12 +7,12 @@ import { useJudul } from "../../lib/hooks";
 
 const PAKET = [
   {
-    nama: "Ringkasan Lokasi",
+    nama: "Free Trial",
     harga: "Gratis",
-    satuan: "selamanya",
-    deskripsi: "Untuk menyaring kandidat sebelum survei.",
-    fitur: ["Skor kelayakan lokasi sesuai tujuan", "Peta risiko banjir, longsor, gempa", "Mode survei & penyimpanan foto", "Simpan dan bandingkan properti"],
-    aksi: "Mulai gratis",
+    satuan: "1 laporan",
+    deskripsi: "Untuk mencoba alur lengkap pada rumah pertama.",
+    fitur: ["1 Laporan Lengkap gratis", "Skor lokasi tanpa batas", "Mode survei & penyimpanan foto", "Simulasi KPR indikatif tanpa batas"],
+    aksi: "Mulai Free Trial",
   },
   {
     nama: "Laporan Lengkap",
@@ -24,12 +24,12 @@ const PAKET = [
     unggulan: true,
   },
   {
-    nama: "Paket Hemat",
-    harga: rupiah(199000),
-    satuan: "5 laporan",
+    nama: "Paket Komparasi",
+    harga: rupiah(119000),
+    satuan: "3 laporan",
     deskripsi: "Untuk membandingkan beberapa kandidat sekaligus.",
-    fitur: ["5 kredit Laporan Lengkap", "Pakai untuk properti mana saja", "Hemat 19% dibanding satuan"],
-    aksi: "Pilih Paket Hemat",
+    fitur: ["3 kredit Laporan Lengkap", "Matriks perbandingan kandidat", "Hemat dibanding pembelian satuan"],
+    aksi: "Pilih Paket Komparasi",
   },
   {
     nama: "Inspeksi Profesional",

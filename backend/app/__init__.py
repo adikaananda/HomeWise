@@ -6,7 +6,7 @@ from flask import Flask, request, send_from_directory
 from . import db
 from .konfigurasi import Konfigurasi
 from .respon import daftarkan_penangan_galat
-from .rute import admin, auth, dasbor, inspeksi, pembayaran, properti, publik
+from .rute import admin, auth, dasbor, inspeksi, kpr, pembayaran, properti, publik
 
 
 def buat_aplikasi(konfigurasi_tambahan=None):
@@ -21,7 +21,7 @@ def buat_aplikasi(konfigurasi_tambahan=None):
     app.teardown_appcontext(db.tutup_koneksi)
     daftarkan_penangan_galat(app)
 
-    for modul in (auth, publik, dasbor, properti, pembayaran, inspeksi, admin):
+    for modul in (auth, publik, dasbor, properti, pembayaran, inspeksi, admin, kpr):
         app.register_blueprint(modul.bp)
 
     _pasang_cors(app)
@@ -42,7 +42,7 @@ def _periksa_konfigurasi(app):
     if app.config["LINGKUNGAN"] != "produksi":
         return
     kunci = app.config["SECRET_KEY"]
-    if kunci == KUNCI_BAWAAN or kunci.startswith("ganti-") or len(kunci) < 32:
+    if kunci == KUNCI_BAWAAN or kunci.startswith(("ganti-", "ganti_")) or len(kunci) < 32:
         raise RuntimeError("SECRET_KEY wajib diisi string acak minimal 32 karakter saat LINGKUNGAN=produksi.")
 
 

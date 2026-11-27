@@ -10,11 +10,12 @@ import {
   LuLock,
   LuMapPin,
   LuRefreshCw,
+  LuStar,
   LuTrash2,
   LuWallet,
 } from "react-icons/lu";
 import { KepalaHalaman } from "../../../komponen/tata-letak/Aplikasi";
-import { CincinSkor, GalatMuat, Kartu, KerangkaHalaman, Lencana, Modal, Pilihan, Tab, Tombol } from "../../../komponen/ui";
+import { CincinSkor, GalatMuat, Kartu, KerangkaHalaman, Lencana, Modal, Pemberitahuan, Pilihan, Tab, Tombol } from "../../../komponen/ui";
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { rupiahRingkas, tanggal } from "../../../lib/format";
@@ -147,6 +148,7 @@ export default function DetailProperti({ id }) {
   const ubahTujuan = (tujuan) => aksi(() => api.patch(`/properti/${id}`, { tujuan }), `Skor dihitung ulang untuk tujuan ${labelTujuan(konfigurasi, tujuan).toLowerCase()}.`);
   const simpan = () => aksi(() => api.patch(`/properti/${id}`, { tersimpan: !properti.tersimpan }), properti.tersimpan ? "Dihapus dari tersimpan." : "Properti disimpan.");
   const analisisUlang = () => aksi(() => api.post(`/properti/${id}/analisis-lokasi`), "Analisis lokasi diperbarui.");
+  const pilihUtama = () => aksi(() => api.post(`/properti/${id}/pilihan-utama`), "Bagus! Rumah ini menjadi pilihan utama Anda.");
   const hapus = () =>
     jalankan(async () => {
       try {
@@ -197,6 +199,7 @@ export default function DetailProperti({ id }) {
               </Tombol>
               <Tombol varian="sekunder" ikon={LuRefreshCw} onClick={analisisUlang} disabled={proses} aria-label="Perbarui analisis lokasi" title="Perbarui analisis lokasi" />
               {premium && <TombolUnduhLaporan properti={properti} />}
+              {!properti.pilihan_utama && <Tombol varian="sekunder" ikon={LuStar} onClick={pilihUtama} disabled={proses}>Jadikan pilihan utama</Tombol>}
               <Tombol varian="bahaya" ikon={LuTrash2} onClick={() => setKonfirmasiHapus(true)} aria-label="Hapus properti" />
             </>
           )
@@ -209,6 +212,7 @@ export default function DetailProperti({ id }) {
         {properti.luas_tanah && <Lencana nada="netral">LT {properti.luas_tanah} m²</Lencana>}
         {properti.tahun_bangun && <Lencana nada="netral">Dibangun {properti.tahun_bangun}</Lencana>}
         <Lencana nada={premium ? "sukses" : undefined}>{premium ? "Laporan lengkap" : "Ringkasan gratis"}</Lencana>
+        {properti.pilihan_utama && <Lencana nada="sukses" ikon={LuStar}>Rumah pilihan utama</Lencana>}
         {detail.lokasi?.sumber === "simulasi" ? (
           <Lencana nada="peringatan">Data AI mode demo</Lencana>
         ) : detail.lokasi?.sumber ? (
@@ -221,6 +225,18 @@ export default function DetailProperti({ id }) {
         )}
         <span className="teks-mini teks-redup">Ditambahkan {tanggal(properti.dibuat)}</span>
       </div>
+
+      {properti.pilihan_utama && (
+        <div style={{ marginBottom: 20 }}>
+          <Pemberitahuan
+            nada="sukses"
+            judul="Kandidat terkuat Anda sudah dipilih"
+            aksi={<Tombol ke={`/app/kpr/${properti.id}`} ukuran="kecil" ikonKanan={LuArrowRight}>Lanjut ke simulasi KPR</Tombol>}
+          >
+            Hitung DP, tenor, angsuran, dan opsi memasukkan estimasi renovasi ke kebutuhan pembiayaan.
+          </Pemberitahuan>
+        </div>
+      )}
 
       <LangkahBerikutnya
         detail={detail}

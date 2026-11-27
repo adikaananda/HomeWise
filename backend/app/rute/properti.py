@@ -95,6 +95,22 @@ def analisis_ulang_lokasi(properti_id):
     return sukses(layanan_properti.detail_lengkap(properti, pengguna))
 
 
+@bp.post("/<int:properti_id>/pilihan-utama")
+@wajib_login()
+def jadikan_pilihan_utama(properti_id):
+    pengguna = pengguna_aktif()
+    layanan_properti.ambil_properti(properti_id, pengguna, izinkan_staf=False)
+    koneksi = db.ambil_koneksi()
+    koneksi.execute("UPDATE properti SET pilihan_utama = 0 WHERE pengguna_id = ?", (pengguna["id"],))
+    koneksi.execute(
+        "UPDATE properti SET pilihan_utama = 1, diperbarui = ? WHERE id = ?",
+        (db.sekarang(), properti_id),
+    )
+    koneksi.commit()
+    properti = db.satu("SELECT * FROM properti WHERE id = ?", (properti_id,))
+    return sukses(layanan_properti.detail_lengkap(properti, pengguna), pesan="Properti ditetapkan sebagai Pilihan Utama.")
+
+
 @bp.post("/<int:properti_id>/buka-kredit")
 @wajib_login()
 def buka_dengan_kredit(properti_id):

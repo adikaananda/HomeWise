@@ -20,6 +20,7 @@ def daftar():
         "sandi_hash": hash_sandi(data.sandi),
         "telepon": data.telepon,
         "perusahaan": data.perusahaan,
+        "kredit_laporan": 1,
     })
     pengguna = db.satu("SELECT * FROM pengguna WHERE id = ?", (id_baru,))
     return sukses({"token": buat_token(pengguna), "pengguna": profil_publik(pengguna)}, 201)

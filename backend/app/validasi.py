@@ -104,7 +104,7 @@ class SkemaGantiSandi(BaseModel):
 
 
 class SkemaPembayaran(BaseModel):
-    paket: Literal["laporan_tunggal", "paket_hemat", "inspeksi_profesional"]
+    paket: Literal["laporan_tunggal", "paket_hemat", "paket_komparasi", "inspeksi_profesional"]
     properti_id: Optional[int] = None
 
 
@@ -177,3 +177,50 @@ class SkemaUbahSumberData(BaseModel):
     status: Optional[Literal["aktif", "perlu_pembaruan", "nonaktif"]] = None
     catatan: Optional[str] = Field(default=None, max_length=500)
     tandai_diperbarui: bool = False
+
+
+class SkemaSimulasiKPR(BaseModel):
+    properti_id: int = Field(gt=0)
+    program_kpr: Literal["promo_fixed", "platinum", "btn_gaess", "btn_platinum", "btn_renovasi"] = "promo_fixed"
+    sertakan_renovasi: bool = False
+    persen_dp: float = Field(default=15, ge=5, le=80)
+    tenor_tahun: int = Field(default=20, ge=1, le=30)
+    harga_simulasi: Optional[int] = Field(default=None, ge=0, le=1_000_000_000_000)
+    biaya_renovasi_manual: Optional[int] = Field(default=None, ge=0, le=100_000_000_000)
+
+
+class SkemaPengajuanKPR(BaseModel):
+    properti_id: int = Field(gt=0)
+    program_kpr: Literal["promo_fixed", "platinum", "btn_gaess", "btn_platinum", "btn_renovasi"] = "promo_fixed"
+    sertakan_renovasi: bool = False
+    persen_dp: float = Field(ge=5, le=80)
+    tenor_tahun: int = Field(ge=1, le=30)
+    harga_simulasi: Optional[int] = Field(default=None, ge=0, le=1_000_000_000_000)
+    biaya_renovasi_manual: Optional[int] = Field(default=None, ge=0, le=100_000_000_000)
+    nama_pemohon: str = Field(min_length=2, max_length=80)
+    telepon: str = Field(min_length=8, max_length=24)
+    email: str = Field(min_length=5, max_length=120)
+    status_pekerjaan: Literal[
+        "karyawan_tetap",
+        "wirausaha",
+        "profesional",
+        "pns",
+        "Karyawan tetap",
+        "Wirausaha",
+        "Profesional",
+        "PNS / BUMN",
+    ] = "karyawan_tetap"
+    penghasilan_bulanan: int = Field(default=0, ge=0, le=10_000_000_000)
+    kota: Optional[str] = Field(default=None, max_length=80)
+    kota_properti: Optional[str] = Field(default=None, max_length=80)
+    pilihan_layanan: Literal["konsultasi", "mandiri"] = "konsultasi"
+    persetujuan: bool = True
+    catatan: Optional[str] = Field(default=None, max_length=1000)
+
+    @field_validator("email")
+    @classmethod
+    def email_kpr_valid(cls, v):
+        v = v.strip().lower()
+        if "@" not in v or "." not in v.split("@")[-1]:
+            raise ValueError("Format email tidak valid")
+        return v
