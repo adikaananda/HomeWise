@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS foto_bangunan (
     ruang TEXT,
     area TEXT NOT NULL DEFAULT 'lainnya',
     sumber TEXT NOT NULL DEFAULT 'survei' CHECK (sumber IN ('survei', 'iklan', 'analis')),
+    jarak TEXT NOT NULL DEFAULT 'sedang' CHECK (jarak IN ('dekat', 'sedang', 'jauh')),
     diunggah_oleh INTEGER REFERENCES pengguna(id),
     dibuat TEXT NOT NULL DEFAULT (datetime('now'))
 );

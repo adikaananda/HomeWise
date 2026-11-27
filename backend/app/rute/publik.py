@@ -6,6 +6,7 @@ from ..layanan import ai_klien, harga_tanah, lokasi, midtrans, penjelasan
 from ..layanan.konstanta import (
     AREA_FOTO,
     INDIKATOR,
+    JARAK_FOTO,
     JENIS_KERUSAKAN,
     KATEGORI_FASILITAS,
     PAKET,
@@ -45,6 +46,7 @@ def konfigurasi():
         "kategori_fasilitas": KATEGORI_FASILITAS,
         "jenis_kerusakan": JENIS_KERUSAKAN,
         "area_foto": AREA_FOTO,
+        "jarak_foto": JARAK_FOTO,
         "sumber_foto": SUMBER_FOTO,
         "pertanyaan_survei": PERTANYAAN_SURVEI,
         "prioritas": PRIORITAS,

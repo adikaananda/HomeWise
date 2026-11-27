@@ -1,4 +1,5 @@
 import json
+import math
 from pathlib import Path
 
 import cv2
@@ -18,6 +19,17 @@ MEAN_IMAGENET = np.array([0.485, 0.456, 0.406], dtype=np.float32).reshape(1, 3, 
 STD_IMAGENET = np.array([0.229, 0.224, 0.225], dtype=np.float32).reshape(1, 3, 1, 1)
 
 UKURAN_ANALISIS = 320
+FOV_DIAGONAL_DERAJAT = 78.0
+JARAK_FOTO_METER = {"dekat": 1.0, "sedang": 3.0, "jauh": 5.0}
+
+
+def _dimensi_bidang_meter(jarak_m: float, w_px: int, h_px: int) -> tuple[float, float]:
+    """Menghitung lebar dan tinggi bidang (meter) dari jarak dan FOV diagonal 78° (kamera utama 1x)."""
+    w_ok = max(1, int(w_px))
+    h_ok = max(1, int(h_px))
+    diag_px = math.hypot(w_ok, h_ok)
+    diag_m = 2.0 * float(jarak_m) * math.tan(math.radians(FOV_DIAGONAL_DERAJAT / 2.0))
+    return diag_m * (w_ok / diag_px), diag_m * (h_ok / diag_px)
 
 _CACHE_MODEL = {}
 
@@ -555,26 +567,36 @@ def _petakan_ke_homewise(
     kotak: tuple[float, float, float, float],
     poligon_list: list[list[list[float]]] | None = None,
     ukuran: dict | None = None,
+    adalah_closeup: bool = False,
+    dimensi_bidang: tuple[float, float] | None = None,
 ):
     """Memetakan kelas visual BD3 + konteks area foto ke skema temuan HomeWise."""
     _, _, lebar, tinggi = kotak
-    luas_bidang = LUAS_BIDANG_FOTO.get((area or "lainnya").lower(), LUAS_BIDANG_FOTO["lainnya"])
+    if dimensi_bidang is not None:
+        lebar_m, tinggi_m = dimensi_bidang
+        luas_bidang = lebar_m * tinggi_m
+    else:
+        luas_bidang = LUAS_BIDANG_FOTO.get((area or "lainnya").lower(), LUAS_BIDANG_FOTO["lainnya"])
+        aspek = (ukuran or {}).get("aspek") or 4 / 3
+        lebar_m = float(np.sqrt(luas_bidang * aspek))
+        tinggi_m = lebar_m / aspek
+
     if ukuran and ukuran.get("rasio_luas", 0) > 0:
         rasio_efektif = ukuran["rasio_luas"]
     else:
         # Tanpa mask, kotak deteksi dipakai dengan faktor isi 50% karena kerusakan jarang memenuhi kotaknya.
         rasio_efektif = 0.5 * lebar * tinggi
-    luas_m2 = round(float(min(luas_bidang, max(0.1, rasio_efektif * luas_bidang))), 2)
 
     panjang_m = None
     if kelas_bd3 in ("major_crack", "minor_crack"):
-        aspek = (ukuran or {}).get("aspek") or 4 / 3
-        lebar_bidang_m = float(np.sqrt(luas_bidang * aspek))
         if ukuran and ukuran.get("panjang_rasio_lebar"):
-            panjang_m = ukuran["panjang_rasio_lebar"] * lebar_bidang_m
+            panjang_m = ukuran["panjang_rasio_lebar"] * lebar_m
         else:
-            panjang_m = float(np.hypot(lebar * lebar_bidang_m, tinggi * lebar_bidang_m / aspek))
+            panjang_m = float(math.hypot(lebar * lebar_m, tinggi * tinggi_m))
         panjang_m = round(min(15.0, max(0.2, panjang_m)), 2)
+        luas_m2 = round(float(min(luas_bidang, max(0.1, max(rasio_efektif * luas_bidang, panjang_m * 0.30)))), 2)
+    else:
+        luas_m2 = round(float(min(luas_bidang, max(0.1, rasio_efektif * luas_bidang))), 2)
 
     if kelas_bd3 == "major_crack":
         tingkat = "berat"
@@ -660,10 +682,17 @@ def _iou_kotak(a: dict, b: dict) -> float:
     return inter / union if union > 0 else 0.0
 
 
-def _analisis_satu_foto(jalur_berkas: Path, foto_id: int, area: str, ambang: float = 0.38) -> list[dict]:
+def _analisis_satu_foto(
+    jalur_berkas: Path,
+    foto_id: int,
+    area: str,
+    ambang: float = 0.38,
+    jarak: str | None = None,
+) -> list[dict]:
     sesi, clf, kelas = _muat_model()
     with Image.open(jalur_berkas) as im:
         img_rgb = np.array(im.convert("RGB"))
+    h_px, w_px = img_rgb.shape[:2]
 
     info = _buat_masker_permukaan(img_rgb, area)
     peta_kandidat, peta_mask = _kandidat_kontur_kerusakan(info, area)
@@ -690,12 +719,23 @@ def _analisis_satu_foto(jalur_berkas: Path, foto_id: int, area: str, ambang: flo
 
     rasio_permukaan = float((info["mask"] > 0).mean())
     adalah_closeup = info["y_lantai"] >= 0.98 and rasio_permukaan >= 0.85
+    jarak_m = JARAK_FOTO_METER.get((jarak or "").lower()) or (1.0 if adalah_closeup else 3.0)
+    dimensi_bidang = _dimensi_bidang_meter(jarak_m, w_px, h_px)
 
     if adalah_closeup and len(daftar_kandidat) <= 1 and kelas_global != "plain" and prob_global_max >= 0.50:
         kotak_utama = _pilih_kotak_closeup(kelas_global, peta_kandidat)
         kunci_mask = _kunci_mask_dari_kelas(kelas_global)
-        poligon_list, rasio_luas = _ekstrak_poligon(peta_mask[kunci_mask], kotak_utama, kunci_mask)
-        temuan = _petakan_ke_homewise(kelas_global, prob_global_max, area, kotak_utama, poligon_list=poligon_list, ukuran=rasio_luas)
+        poligon_list, ukuran = _ekstrak_poligon(peta_mask[kunci_mask], kotak_utama, kunci_mask)
+        temuan = _petakan_ke_homewise(
+            kelas_global,
+            prob_global_max,
+            area,
+            kotak_utama,
+            poligon_list=poligon_list,
+            ukuran=ukuran,
+            adalah_closeup=True,
+            dimensi_bidang=dimensi_bidang,
+        )
         if temuan:
             temuan["foto_id"] = foto_id
             return [temuan]
@@ -754,10 +794,19 @@ def _analisis_satu_foto(jalur_berkas: Path, foto_id: int, area: str, ambang: flo
             else:
                 continue
 
-        poligon_list, rasio_luas = _ekstrak_poligon(peta_mask[mask_dipakai], kotak, mask_dipakai)
+        poligon_list, ukuran = _ekstrak_poligon(peta_mask[mask_dipakai], kotak, mask_dipakai)
         if poligon_list is None and mask_dipakai != jenis_dasar:
-            poligon_list, rasio_luas = _ekstrak_poligon(peta_mask[jenis_dasar], kotak, jenis_dasar)
-        temuan = _petakan_ke_homewise(kelas_terpilih, prob_akhir, area, kotak, poligon_list=poligon_list, ukuran=rasio_luas)
+            poligon_list, ukuran = _ekstrak_poligon(peta_mask[jenis_dasar], kotak, jenis_dasar)
+        temuan = _petakan_ke_homewise(
+            kelas_terpilih,
+            prob_akhir,
+            area,
+            kotak,
+            poligon_list=poligon_list,
+            ukuran=ukuran,
+            adalah_closeup=adalah_closeup,
+            dimensi_bidang=dimensi_bidang,
+        )
         if not temuan:
             continue
         temuan["foto_id"] = foto_id
@@ -778,8 +827,17 @@ def _analisis_satu_foto(jalur_berkas: Path, foto_id: int, area: str, ambang: flo
     if not hasil_temuan and kelas_global != "plain" and prob_global_max >= ambang:
         kotak_fallback = _pilih_kotak_closeup(kelas_global, peta_kandidat)
         kunci_mask = _kunci_mask_dari_kelas(kelas_global)
-        poligon_list, rasio_luas = _ekstrak_poligon(peta_mask[kunci_mask], kotak_fallback, kunci_mask)
-        temuan = _petakan_ke_homewise(kelas_global, prob_global_max, area, kotak_fallback, poligon_list=poligon_list, ukuran=rasio_luas)
+        poligon_list, ukuran = _ekstrak_poligon(peta_mask[kunci_mask], kotak_fallback, kunci_mask)
+        temuan = _petakan_ke_homewise(
+            kelas_global,
+            prob_global_max,
+            area,
+            kotak_fallback,
+            poligon_list=poligon_list,
+            ukuran=ukuran,
+            adalah_closeup=adalah_closeup,
+            dimensi_bidang=dimensi_bidang,
+        )
         if temuan:
             temuan["foto_id"] = foto_id
             return [temuan]
@@ -794,5 +852,5 @@ def analisis_foto(daftar_foto: list[dict], dir_unggahan: Path) -> dict:
         jalur = Path(dir_unggahan) / f["nama_berkas"]
         if not jalur.exists():
             continue
-        semua_temuan.extend(_analisis_satu_foto(jalur, f["id"], f.get("area") or "lainnya"))
+        semua_temuan.extend(_analisis_satu_foto(jalur, f["id"], f.get("area") or "lainnya", jarak=f.get("jarak")))
     return {"temuan": semua_temuan}

@@ -103,6 +103,12 @@ SUMBER_FOTO = {
     "analis": "Analis HomeWise",
 }
 
+JARAK_FOTO = [
+    {"kode": "dekat", "label": "Dekat (1 m)", "meter": 1.0, "keterangan": "Close-up kerusakan (~1,3 m²)"},
+    {"kode": "sedang", "label": "Sedang (3 m)", "meter": 3.0, "keterangan": "Sebagian dinding (~11 m²)"},
+    {"kode": "jauh", "label": "Jauh (5 m)", "meter": 5.0, "keterangan": "Satu bidang penuh (~31 m²)"},
+]
+
 PERTANYAAN_SURVEI = [
     {"kode": "riwayat_banjir", "label": "Menurut warga atau penjual, pernah banjir?",
      "opsi": ["Tidak pernah", "Pernah, surut < 1 hari", "Pernah, lebih dari 1 hari", "Belum tahu"]},

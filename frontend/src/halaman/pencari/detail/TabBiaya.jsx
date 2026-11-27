@@ -321,8 +321,9 @@ export function TabBiaya({ detail, keBangunan }) {
               </details>
             )}
             <p className="teks-mini teks-redup" style={{ marginTop: 10 }}>
-              Rentang wajar {rupiah(biaya.rentang_min)} – {rupiah(biaya.rentang_maks)}. Harga satuan disesuaikan indeks wilayah{" "}
-              {biaya.asumsi.indeks_harga_wilayah}.
+              Rentang wajar {rupiah(biaya.rentang_min)} – {rupiah(biaya.rentang_maks)}. Harga satuan AHSP disesuaikan indeks wilayah{" "}
+              {biaya.asumsi.indeks_harga_wilayah}
+              {biaya.asumsi.provinsi_ikk ? ` (${biaya.asumsi.provinsi_ikk} — ${biaya.asumsi.sumber_indeks})` : ""}.
             </p>
           </Kartu>
 

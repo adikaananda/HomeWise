@@ -4,6 +4,7 @@ import math
 from flask import current_app
 
 from .. import db
+from . import ikk_bps
 from .konstanta import (
     AREA_FOTO,
     ASUMSI_TRANSAKSI,
@@ -15,7 +16,7 @@ from .konstanta import (
     tentukan_prioritas,
 )
 
-VERSI_RINCIAN = 3
+VERSI_RINCIAN = 4
 
 # Faktor volume terhadap luas dasar kerusakan. Nilai > 1 hanya untuk tepi kerja yang memang ikut dikerjakan
 # (misalnya cat dilebihkan 10–15% agar sambungan warna tidak terlihat), bukan pengali keamanan.
@@ -165,9 +166,15 @@ def _prioritas_lebih_tinggi(a, b):
     return a if URUTAN_PRIORITAS.index(a) <= URUTAN_PRIORITAS.index(b) else b
 
 
-def hitung_renovasi(temuan):
+def hitung_renovasi(temuan, properti=None):
     referensi = _referensi()
-    indeks = current_app.config["INDEKS_HARGA_WILAYAH"]
+    info_ikk = ikk_bps.tentukan_indeks_wilayah(
+        alamat=properti.get("alamat") if properti else None,
+        lat=properti.get("lat") if properti else None,
+        lng=properti.get("lng") if properti else None,
+        bawaan=current_app.config["INDEKS_HARGA_WILAYAH"],
+    )
+    indeks = info_ikk["indeks"]
     tarif_kontingensi = ASUMSI_TRANSAKSI["tarif_kontingensi"]
     info_foto = _info_foto(temuan)
     catatan = []
@@ -280,10 +287,13 @@ def hitung_renovasi(temuan):
         "subtotal": subtotal,
         "kontingensi": kontingensi,
         "total": total,
-        "rentang_min": round(total * 0.85),
+        "rentang_min": round(total * 0.90),
         "rentang_maks": round(total * 1.2),
         "asumsi": {
             "indeks_harga_wilayah": indeks,
+            "provinsi_ikk": info_ikk["provinsi"],
+            "ikk": info_ikk["ikk"],
+            "sumber_indeks": info_ikk["sumber"],
             "tarif_kontingensi": tarif_kontingensi,
             "catatan": catatan,
             "metode_volume": [

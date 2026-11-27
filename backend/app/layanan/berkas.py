@@ -47,6 +47,10 @@ def baca_sumber(nilai):
     return "iklan" if nilai == "iklan" else "survei"
 
 
+def baca_jarak(nilai):
+    return nilai if nilai in ("dekat", "sedang", "jauh") else "sedang"
+
+
 def hapus_berkas(nama):
     jalur = Path(current_app.config["DIR_UNGGAHAN"]) / nama
     if jalur.exists():

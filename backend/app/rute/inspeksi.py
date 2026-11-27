@@ -103,6 +103,7 @@ def unggah_foto(inspeksi_id):
     daftar_foto = berkas.ambil_daftar_foto(request)
     layanan_properti.periksa_kuota_foto(inspeksi["properti_id"], len(daftar_foto))
     ruang = request.form.get("ruang", "").strip()[:60] or None
+    jarak = berkas.baca_jarak(request.form.get("jarak"))
     for foto in daftar_foto:
         db.simpan("foto_bangunan", {
             "properti_id": inspeksi["properti_id"],
@@ -111,6 +112,7 @@ def unggah_foto(inspeksi_id):
             "ruang": ruang,
             "area": berkas.baca_area(request.form.get("area")),
             "sumber": "analis",
+            "jarak": jarak,
             "diunggah_oleh": pengguna_aktif()["id"],
         })
     return sukses(_detail(inspeksi_id), 201)

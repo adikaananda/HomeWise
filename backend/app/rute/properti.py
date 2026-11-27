@@ -146,6 +146,7 @@ def unggah_foto(properti_id):
     layanan_properti.periksa_kuota_foto(properti_id, len(daftar_foto))
     area = berkas.baca_area(request.form.get("area"))
     sumber = "analis" if pengguna["peran"] == "analis" else berkas.baca_sumber(request.form.get("sumber"))
+    jarak = berkas.baca_jarak(request.form.get("jarak"))
     ruang = request.form.get("ruang", "").strip()[:60] or None
     for foto in daftar_foto:
         db.simpan("foto_bangunan", {
@@ -155,6 +156,7 @@ def unggah_foto(properti_id):
             "ruang": ruang,
             "area": area,
             "sumber": sumber,
+            "jarak": jarak,
             "diunggah_oleh": pengguna["id"],
         })
     db.perbarui("properti", properti_id, {"diperbarui": db.sekarang()})

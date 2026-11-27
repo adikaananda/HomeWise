@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { LuArrowLeft, LuCircleCheckBig, LuCircleDashed, LuX } from "react-icons/lu";
-import { ProgresSurvei, TombolKamera, useUnggahFoto } from "../../komponen/Survei";
+import { PilihJarakFoto, ProgresSurvei, TombolKamera, useUnggahFoto } from "../../komponen/Survei";
 import { AreaTeks, GalatMuat, KerangkaHalaman, Lencana, Pemberitahuan, Tombol } from "../../komponen/ui";
 import { api, urlBerkas } from "../../lib/api";
 import { useData, useJudul } from "../../lib/hooks";
@@ -116,6 +116,7 @@ export default function ModeSurvei({ id }) {
   const beriTahu = useNotifikasi();
   const { area_foto: daftarArea } = useKonfigurasi();
   const [areaAktif, setAreaAktif] = useState(null);
+  const [jarak, setJarak] = useState("sedang");
   const { data: detail, setData: setDetail, galat, memuat, muatUlang } = useData(() => api.get(`/properti/${id}`), [id]);
   const { unggah, proses } = useUnggahFoto(`/properti/${id}/foto`, setDetail);
   useJudul("Mode survei");
@@ -134,7 +135,7 @@ export default function ModeSurvei({ id }) {
 
   const unggahArea = async (berkas, area) => {
     setAreaAktif(area);
-    await unggah(berkas, { area, sumber: "survei" });
+    await unggah(berkas, { area, sumber: "survei", jarak });
     setAreaAktif(null);
   };
 
@@ -167,10 +168,13 @@ export default function ModeSurvei({ id }) {
         {terkunciValidasi ? (
           <Pemberitahuan nada="sukses">Temuan properti ini sudah divalidasi analis, jadi foto tidak bisa diubah lagi.</Pemberitahuan>
         ) : (
-          <Pemberitahuan judul="Tips foto yang bagus">
-            Nyalakan lampu atau buka jendela, ambil dari jarak 1–2 meter, dan pastikan satu area terlihat jelas per foto. Setiap foto langsung
-            tersimpan begitu diambil.
-          </Pemberitahuan>
+          <>
+            <Pemberitahuan judul="Tips foto yang bagus">
+              Nyalakan lampu atau buka jendela, pilih jarak pengambilan foto di bawah, dan pastikan satu area terlihat jelas per foto. Setiap foto langsung
+              tersimpan begitu diambil.
+            </Pemberitahuan>
+            <PilihJarakFoto nilai={jarak} onUbah={setJarak} />
+          </>
         )}
 
         <section className="tumpuk" aria-label="Foto per area">

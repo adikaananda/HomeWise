@@ -74,7 +74,10 @@ function GaleriFoto({ detail, setDetail }) {
       {foto.map((f) => (
         <figure key={f.id} className="galeri__item">
           <img src={urlBerkas(f.url)} alt={`Foto ${labelArea(konfigurasi, f.area)}`} loading="lazy" />
-          <span className="galeri__label">{labelArea(konfigurasi, f.area)}</span>
+          <span className="galeri__label">
+            {labelArea(konfigurasi, f.area)}
+            {f.jarak ? ` · ${f.jarak === "dekat" ? "1 m" : f.jarak === "jauh" ? "5 m" : "3 m"}` : ""}
+          </span>
           <span className="galeri__sumber">
             <LencanaSumberFoto kode={f.sumber} />
           </span>

@@ -68,7 +68,7 @@ def nilai_ulang_tujuan(properti):
 
 def ambil_foto(properti_id):
     foto = db.banyak(
-        "SELECT id, nama_berkas, nama_asli, ruang, area, sumber, dibuat FROM foto_bangunan WHERE properti_id = ? ORDER BY id",
+        "SELECT id, nama_berkas, nama_asli, ruang, area, sumber, jarak, dibuat FROM foto_bangunan WHERE properti_id = ? ORDER BY id",
         (properti_id,),
     )
     for f in foto:
@@ -122,7 +122,8 @@ def simpan_hasil_bangunan(properti_id, temuan, sumber, tervalidasi=False):
         "tervalidasi": tervalidasi,
         "dibuat": db.sekarang(),
     }, "properti_id")
-    biaya.simpan_estimasi(properti_id, biaya.hitung_renovasi(temuan))
+    prop = db.satu("SELECT alamat, lat, lng FROM properti WHERE id = ?", (properti_id,))
+    biaya.simpan_estimasi(properti_id, biaya.hitung_renovasi(temuan, properti=prop))
 
 
 def jalankan_analisis_bangunan(properti):
@@ -165,7 +166,8 @@ def _perkaya_temuan(temuan, foto):
 def _estimasi_terkini(properti_id, temuan):
     estimasi = db.satu("SELECT * FROM estimasi_biaya WHERE properti_id = ?", (properti_id,), ("rincian",))
     if temuan is not None and (not estimasi or estimasi["rincian"].get("versi") != biaya.VERSI_RINCIAN):
-        biaya.simpan_estimasi(properti_id, biaya.hitung_renovasi(temuan))
+        prop = db.satu("SELECT alamat, lat, lng FROM properti WHERE id = ?", (properti_id,))
+        biaya.simpan_estimasi(properti_id, biaya.hitung_renovasi(temuan, properti=prop))
         estimasi = db.satu("SELECT * FROM estimasi_biaya WHERE properti_id = ?", (properti_id,), ("rincian",))
     return estimasi
 

@@ -7,6 +7,7 @@ const CADANGAN = {
   kategori_fasilitas: {},
   jenis_kerusakan: {},
   area_foto: [],
+  jarak_foto: [],
   sumber_foto: {},
   pertanyaan_survei: [],
   prioritas: {},

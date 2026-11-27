@@ -4,7 +4,7 @@ from pathlib import Path
 
 from .layanan.ahsp import MATERIAL_BAWAAN
 
-VERSI_TERBARU = 7
+VERSI_TERBARU = 8
 
 
 def _ada_tabel(koneksi, nama):
@@ -127,7 +127,12 @@ def _ke_versi_7(koneksi):
     )
 
 
-MIGRASI = {2: _ke_versi_2, 3: _ke_versi_3, 4: _ke_versi_4, 5: _ke_versi_5, 6: _ke_versi_6, 7: _ke_versi_7}
+def _ke_versi_8(koneksi):
+    if "jarak" not in _kolom(koneksi, "foto_bangunan"):
+        koneksi.execute("ALTER TABLE foto_bangunan ADD COLUMN jarak TEXT NOT NULL DEFAULT 'sedang'")
+
+
+MIGRASI = {2: _ke_versi_2, 3: _ke_versi_3, 4: _ke_versi_4, 5: _ke_versi_5, 6: _ke_versi_6, 7: _ke_versi_7, 8: _ke_versi_8}
 
 
 def jalankan(jalur_db):

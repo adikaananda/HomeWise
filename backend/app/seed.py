@@ -17,22 +17,40 @@ PENGGUNA = [
     ("Dimas Pratama", "demo@homewise.id", "demo12345", "pencari", None),
 ]
 
+HARGA_REFERENSI_LAMA = {
+    "acian_dinding": ((18_000, 30_000),),
+    "bobok_plester": ((55_000, 60_000), (73_000, 90_000)),
+    "cat_dinding": ((22_000, 18_000),),
+    "cat_plafon": ((20_000, 18_000),),
+    "kerok_cat": ((3_000, 15_000),),
+    "waterproofing": ((65_000, 35_000),),
+    "perkuatan_struktur": ((450_000, 300_000),),
+    "perbaikan_plafon": ((40_000, 35_000),),
+    "plafon_gypsum": ((95_000, 55_000),),
+    "rangka_plafon": ((75_000, 40_000),),
+    "bongkar_keramik": ((0, 35_000),),
+    "pasang_keramik": ((135_000, 75_000),),
+    "screed_lantai": ((60_000, 45_000),),
+    "perbaikan_atap": ((85_000, 65_000),),
+    "ganti_penutup_atap": ((160_000, 90_000),),
+}
+
 HARGA_REFERENSI = [
-    ("acian_dinding", "Acian ulang dinding (tanpa bongkar plester)", "Dinding", 18_000, 30_000),
-    ("bobok_plester", "Bongkar plester rusak, plester ulang & acian", "Dinding", 73_000, 90_000),
-    ("cat_dinding", "Pengecatan dinding (dasar + 2 lapis)", "Finishing", 22_000, 18_000),
-    ("cat_plafon", "Pengecatan plafon", "Finishing", 20_000, 18_000),
-    ("kerok_cat", "Pengerokan cat lama", "Finishing", 3_000, 15_000),
-    ("waterproofing", "Lapisan waterproofing", "Kelembapan", 65_000, 35_000),
-    ("perkuatan_struktur", "Injeksi epoxy dan perkuatan retak struktur", "Struktur", 450_000, 300_000),
-    ("perbaikan_plafon", "Tambal dan perbaikan plafon", "Plafon", 40_000, 35_000),
-    ("plafon_gypsum", "Ganti panel plafon gypsum", "Plafon", 95_000, 55_000),
-    ("rangka_plafon", "Ganti rangka plafon hollow", "Plafon", 75_000, 40_000),
-    ("bongkar_keramik", "Bongkar keramik lama", "Lantai", 0, 35_000),
-    ("pasang_keramik", "Pasang keramik 60x60 baru", "Lantai", 135_000, 75_000),
-    ("screed_lantai", "Perataan lantai (screed)", "Lantai", 60_000, 45_000),
-    ("perbaikan_atap", "Perbaikan genteng dan talang", "Atap", 85_000, 65_000),
-    ("ganti_penutup_atap", "Ganti penutup atap metal pasir", "Atap", 160_000, 90_000),
+    ("acian_dinding", "Acian ulang dinding (tanpa bongkar plester)", "Dinding", 15_000, 23_000),
+    ("bobok_plester", "Bongkar plester rusak, plester ulang & acian", "Dinding", 47_000, 63_000),
+    ("cat_dinding", "Pengecatan dinding (dasar + 2 lapis)", "Finishing", 18_000, 14_000),
+    ("cat_plafon", "Pengecatan plafon", "Finishing", 16_000, 14_000),
+    ("kerok_cat", "Pengerokan cat lama", "Finishing", 3_000, 10_000),
+    ("waterproofing", "Lapisan waterproofing", "Kelembapan", 42_000, 26_000),
+    ("perkuatan_struktur", "Injeksi epoxy dan perkuatan retak struktur", "Struktur", 110_000, 75_000),
+    ("perbaikan_plafon", "Tambal dan perbaikan plafon", "Plafon", 28_000, 27_000),
+    ("plafon_gypsum", "Ganti panel plafon gypsum", "Plafon", 52_000, 33_000),
+    ("rangka_plafon", "Ganti rangka plafon hollow", "Plafon", 45_000, 28_000),
+    ("bongkar_keramik", "Bongkar keramik lama", "Lantai", 0, 28_000),
+    ("pasang_keramik", "Pasang keramik 60x60 baru", "Lantai", 110_000, 55_000),
+    ("screed_lantai", "Perataan lantai (screed)", "Lantai", 35_000, 27_000),
+    ("perbaikan_atap", "Perbaikan genteng dan talang", "Atap", 55_000, 45_000),
+    ("ganti_penutup_atap", "Ganti penutup atap metal pasir", "Atap", 105_000, 60_000),
 ]
 
 SUMBER_DATA = [
@@ -42,6 +60,7 @@ SUMBER_DATA = [
     ("DEMNAS — Elevasi & Topografi", "Topografi", "Badan Informasi Geospasial", "Nasional, resolusi 8 m", "aktif", 95),
     ("OpenStreetMap — Fasilitas Umum", "Fasilitas & aksesibilitas", "OpenStreetMap Contributors", "Global", "perlu_pembaruan", 120),
     ("AHSP Bidang Cipta Karya", "Harga satuan pekerjaan", "Kementerian PUPR", "Nasional, disesuaikan indeks wilayah", "aktif", 30),
+    ("Indeks Kemahalan Konstruksi (IKK) 2024", "Indeks harga wilayah", "Badan Pusat Statistik (BPS)", "Nasional, 38 provinsi", "aktif", 7),
 ]
 
 PROPERTI_DEMO = [
@@ -145,7 +164,19 @@ def _waktu_lalu(hari, jam=0):
     return (datetime.now(timezone.utc) - timedelta(days=hari, hours=jam)).strftime("%Y-%m-%d %H:%M:%S")
 
 
+def sinkronkan_harga_referensi_bawaan():
+    """Memutakhirkan tarif bawaan ke acuan AHSP/HSPK terbaru tanpa menimpa ubahan admin."""
+    for kode, _, _, material_baru, upah_baru in HARGA_REFERENSI:
+        daftar_lama = HARGA_REFERENSI_LAMA.get(kode)
+        if not daftar_lama:
+            continue
+        baris = db.satu("SELECT id, harga_material, harga_upah FROM harga_referensi WHERE kode = ?", (kode,))
+        if baris and (baris["harga_material"], baris["harga_upah"]) in daftar_lama:
+            db.perbarui("harga_referensi", baris["id"], {"harga_material": material_baru, "harga_upah": upah_baru})
+
+
 def isi_data_awal():
+    sinkronkan_harga_referensi_bawaan()
     if db.nilai("SELECT COUNT(*) FROM pengguna"):
         return
 

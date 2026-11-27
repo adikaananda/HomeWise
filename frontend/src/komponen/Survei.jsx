@@ -8,6 +8,11 @@ import { Lencana, Modal, Pilihan, Tombol } from "./ui";
 const BATAS_UKURAN = 15 * 1024 * 1024;
 const NADA_PRIORITAS = { mendesak: "bahaya", disarankan: "peringatan", kosmetik: "sukses" };
 const NADA_SUMBER = { survei: "sukses", iklan: "peringatan", analis: undefined };
+const JARAK_BAWAAN = [
+  { kode: "dekat", label: "Dekat (1 m)", keterangan: "Close-up (~1,3 m²)" },
+  { kode: "sedang", label: "Sedang (3 m)", keterangan: "Sebagian dinding (~11 m²)" },
+  { kode: "jauh", label: "Jauh (5 m)", keterangan: "Satu bidang penuh (~31 m²)" },
+];
 
 export function LencanaPrioritas({ kode }) {
   const { prioritas } = useKonfigurasi();
@@ -23,7 +28,7 @@ export function useUnggahFoto(endpoint, onSelesai) {
   const beriTahu = useNotifikasi();
   const [proses, setProses] = useState(false);
 
-  const unggah = async (daftar, { area, sumber, ruang } = {}) => {
+  const unggah = async (daftar, { area, sumber, ruang, jarak } = {}) => {
     const berkas = [...daftar].filter((f) => f.type.startsWith("image/"));
     if (!berkas.length) return false;
     if (berkas.some((f) => f.size > BATAS_UKURAN)) {
@@ -39,6 +44,7 @@ export function useUnggahFoto(endpoint, onSelesai) {
         if (area) data.append("area", area);
         if (sumber) data.append("sumber", sumber);
         if (ruang) data.append("ruang", ruang);
+        if (jarak) data.append("jarak", jarak);
         hasil = await api.unggah(endpoint, data);
       }
       beriTahu(berkas.length > 1 ? `${berkas.length} foto tersimpan.` : "Foto tersimpan.");
@@ -111,22 +117,45 @@ export function TombolKamera({ onPilih, memuat, label = "Ambil foto", varian, uk
   );
 }
 
+export function PilihJarakFoto({ nilai, onUbah }) {
+  const { jarak_foto: daftarJarak } = useKonfigurasi();
+  const opsi = daftarJarak?.length ? daftarJarak : JARAK_BAWAAN;
+  return (
+    <div>
+      <div className="tebal teks-kecil" style={{ marginBottom: 6 }}>
+        Jarak pengambilan foto
+      </div>
+      <div className="pilihan-kartu" role="radiogroup" aria-label="Jarak pengambilan foto" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+        {opsi.map((j) => (
+          <label key={j.kode}>
+            <input type="radio" name="jarak_foto" checked={nilai === j.kode} onChange={() => onUbah(j.kode)} />
+            <span className="pilihan-kartu__isi tebal teks-kecil">{j.label}</span>
+            <span className="teks-mini teks-redup">{j.keterangan}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ModalUnggahFoto({ terbuka, onTutup, endpoint, onSelesai, sumberTetap, areaAwal = "lainnya" }) {
   const { area_foto: daftarArea } = useKonfigurasi();
   const [area, setArea] = useState(areaAwal);
   const [sumber, setSumber] = useState(sumberTetap || "survei");
+  const [jarak, setJarak] = useState("sedang");
   const [seret, setSeret] = useState(false);
   const input = useRef(null);
   const { unggah, proses } = useUnggahFoto(endpoint, onSelesai);
 
   const kirim = async (berkas) => {
-    if (await unggah(berkas, { area, sumber: sumberTetap || sumber })) onTutup();
+    if (await unggah(berkas, { area, sumber: sumberTetap || sumber, jarak })) onTutup();
   };
 
   return (
-    <Modal terbuka={terbuka} onTutup={() => !proses && onTutup()} judul="Tambah foto bangunan" deskripsi="Pilih area agar AI dan laporan bisa menunjukkan lokasi kerusakan.">
+    <Modal terbuka={terbuka} onTutup={() => !proses && onTutup()} judul="Tambah foto bangunan" deskripsi="Pilih area dan jarak foto agar estimasi luas kerusakan lebih presisi.">
       <div className="tumpuk">
         <Pilihan label="Area yang difoto" value={area} onChange={(e) => setArea(e.target.value)} opsi={daftarArea.map((a) => ({ nilai: a.kode, label: a.label }))} />
+        <PilihJarakFoto nilai={jarak} onUbah={setJarak} />
         {!sumberTetap && (
           <div className="pilihan-kartu" role="radiogroup" aria-label="Sumber foto" style={{ gridTemplateColumns: "1fr 1fr" }}>
             <label>
