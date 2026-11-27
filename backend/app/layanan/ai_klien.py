@@ -56,6 +56,35 @@ def _periksa_lokasi(data):
     return data
 
 
+def _bersihkan_poligon(poligon):
+    if not isinstance(poligon, (list, tuple)) or len(poligon) < 3:
+        return None
+    titik = []
+    for p in poligon[:64]:
+        try:
+            if isinstance(p, dict):
+                x, y = float(p["x"]), float(p["y"])
+            elif isinstance(p, (list, tuple)) and len(p) >= 2:
+                x, y = float(p[0]), float(p[1])
+            else:
+                continue
+        except (KeyError, TypeError, ValueError):
+            continue
+        titik.append([round(min(1.0, max(0.0, x)), 3), round(min(1.0, max(0.0, y)), 3)])
+    return titik if len(titik) >= 3 else None
+
+
+def _bersihkan_poligon_jamak(daftar):
+    if not isinstance(daftar, (list, tuple)):
+        return None
+    hasil = []
+    for p in daftar[:8]:
+        bersih = _bersihkan_poligon(p)
+        if bersih:
+            hasil.append(bersih)
+    return hasil or None
+
+
 def _bersihkan_temuan(data):
     hasil = []
     for t in (data or {}).get("temuan", []):
@@ -65,6 +94,8 @@ def _bersihkan_temuan(data):
             continue
         if t.get("jenis") not in JENIS_KERUSAKAN or t.get("tingkat") not in TINGKAT_VALID or luas <= 0:
             continue
+        poligon_list = _bersihkan_poligon_jamak(t.get("poligon_list"))
+        poligon = _bersihkan_poligon(t.get("poligon")) or (poligon_list[0] if poligon_list else None)
         hasil.append({
             "jenis": t["jenis"],
             "tingkat": t["tingkat"],
@@ -72,6 +103,8 @@ def _bersihkan_temuan(data):
             "luas_m2": round(min(luas, 1000.0), 1),
             "foto_id": t.get("foto_id"),
             "kotak": t.get("kotak") if isinstance(t.get("kotak"), dict) else None,
+            "poligon": poligon,
+            "poligon_list": poligon_list,
         })
     return {"temuan": hasil}
 

@@ -230,10 +230,19 @@ def _kotak_dari_peta(
     jarak_gabung: float = 0.09,
     min_fill: float = 0.03,
     min_kotak_gabung: float = 0.0,
+    pakai_open: bool = True,
+    maks_fill: float = 1.0,
 ) -> list[tuple[tuple[float, float, float, float], float]]:
     """Mengekstrak bounding box ternormalisasi dari peta piksel anomali."""
     h, w = peta.shape[:2]
-    bersih = cv2.morphologyEx(peta.astype(np.uint8) * 255, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    if pakai_open:
+        bersih = cv2.morphologyEx(peta.astype(np.uint8) * 255, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    else:
+        jml_k, label_k, stats_k, _ = cv2.connectedComponentsWithStats((peta > 0).astype(np.uint8), connectivity=8)
+        bersih = np.zeros((h, w), dtype=np.uint8)
+        for cid_k in range(1, jml_k):
+            if stats_k[cid_k, cv2.CC_STAT_AREA] >= 4:
+                bersih[label_k == cid_k] = 255
     if not np.any(bersih):
         return []
 
@@ -249,7 +258,7 @@ def _kotak_dari_peta(
         if area_px < area_min_rasio * area_permukaan:
             continue
         isi_asli = float((bersih[y : y + ch_b, x : x + cw] > 0).sum()) / max(1.0, float(cw * ch_b))
-        if isi_asli < min_fill:
+        if isi_asli < min_fill or isi_asli > maks_fill:
             continue
         nx1 = max(0.01, float(x / w) - pad)
         ny1 = max(0.01, float(y / h) - pad)
@@ -345,29 +354,137 @@ def _kandidat_kontur_kerusakan(info: dict, area: str) -> dict[str, list[tuple[tu
         min_kotak_gabung=0.012,
     )
 
-    # 3. Retak dinding: Black-Hat mendeteksi celah gelap memanjang
+    # 3. Retak dinding: Black-Hat mendeteksi celah gelap memanjang (tanpa blok gelap lebar seperti roster)
     bh = cv2.morphologyEx(
         np.clip(l_ch, 0, 255).astype(np.uint8),
         cv2.MORPH_BLACKHAT,
-        cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13)),
+        cv2.getStructuringElement(cv2.MORPH_RECT, (11, 11)),
     )
-    peta_retak = mask_dinding & (bh >= 22) & (chroma_dist < 16.0)
+    peta_retak_awal = mask_dinding & (bh >= 15) & (chroma_dist < 18.0)
+    inti_gelap = cv2.erode(peta_retak_awal.astype(np.uint8) * 255, np.ones((9, 9), np.uint8))
+    if np.any(inti_gelap):
+        peta_retak = peta_retak_awal & (cv2.dilate(inti_gelap, np.ones((13, 13), np.uint8)) == 0)
+    else:
+        peta_retak = peta_retak_awal
     kandidat_retak = _kotak_dari_peta(
         peta_retak,
-        kernel_close=(23, 23),
-        area_min_rasio=0.003,
+        kernel_close=(19, 19),
+        area_min_rasio=0.0012,
         mask_permukaan=mask_dinding.astype(np.uint8),
         y_maks=y_batas,
         pad=0.02,
-        jarak_gabung=0.08,
-        min_kotak_gabung=0.008,
+        jarak_gabung=0.025,
+        min_fill=0.012,
+        min_kotak_gabung=0.006,
+        pakai_open=False,
+        maks_fill=0.45,
     )
 
-    return {
-        "cat_mengelupas": kandidat_peel,
-        "noda_lembap": kandidat_damp,
-        "retak_dinding": kandidat_retak,
-    }
+    return (
+        {
+            "cat_mengelupas": kandidat_peel,
+            "noda_lembap": kandidat_damp,
+            "retak_dinding": kandidat_retak,
+        },
+        {
+            "cat_mengelupas": peta_peel,
+            "noda_lembap": peta_damp,
+            "retak_dinding": peta_retak,
+        },
+    )
+
+
+def _kunci_mask_dari_kelas(kelas_bd3: str) -> str:
+    if kelas_bd3 in ("peeling", "spalling"):
+        return "cat_mengelupas"
+    if kelas_bd3 in ("stain", "algae"):
+        return "noda_lembap"
+    return "retak_dinding"
+
+
+def _ekstrak_poligon(
+    peta_mask: np.ndarray,
+    kotak: tuple[float, float, float, float],
+    jenis_dasar: str,
+) -> tuple[list[list[list[float]]] | None, float | None]:
+    """Mengekstrak daftar poligon simpul ternormalisasi dari seluruh kontur signifikan di dalam ROI kotak."""
+    h, w = peta_mask.shape[:2]
+    kx, ky, lb, tg = kotak
+    x1 = max(0, int(np.floor(kx * w)))
+    y1 = max(0, int(np.floor(ky * h)))
+    x2 = min(w, int(np.ceil((kx + lb) * w)))
+    y2 = min(h, int(np.ceil((ky + tg) * h)))
+    if x2 <= x1 + 2 or y2 <= y1 + 2:
+        return None, None
+
+    roi = (peta_mask[y1:y2, x1:x2] > 0).astype(np.uint8) * 255
+    if not np.any(roi):
+        return None, None
+
+    if jenis_dasar == "retak_dinding":
+        eps_mul, maks_simpul, min_area_px, rasio_min_rel, maks_kontur = 0.010, 20, 10.0, 0.06, 6
+        k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        clean = cv2.morphologyEx(roi, cv2.MORPH_CLOSE, k)
+        kontur, _ = cv2.findContours(clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        luas_semua = [cv2.contourArea(c) for c in kontur]
+        if max(luas_semua, default=0.0) < min_area_px or sum(luas_semua) < 0.25 * float((roi > 0).sum()):
+            k_besar = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+            clean = cv2.morphologyEx(roi, cv2.MORPH_CLOSE, k_besar)
+            kontur, _ = cv2.findContours(clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    else:
+        bersih = cv2.morphologyEx(roi, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+        k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+        clean = cv2.morphologyEx(bersih, cv2.MORPH_CLOSE, k)
+        eps_mul, maks_simpul, min_area_px, rasio_min_rel, maks_kontur = 0.015, 18, 24.0, 0.08, 6
+        kontur, _ = cv2.findContours(clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if not kontur:
+        return None, None
+
+    terurut = sorted(((float(cv2.contourArea(c)), c) for c in kontur), key=lambda item: item[0], reverse=True)
+    luas_terbesar = terurut[0][0]
+    if luas_terbesar < min_area_px:
+        return None, None
+
+    daftar_poligon = []
+    total_luas_px = 0.0
+    for luas_px, cnt in terurut:
+        if len(daftar_poligon) >= maks_kontur:
+            break
+        if luas_px < min_area_px or luas_px < rasio_min_rel * luas_terbesar:
+            continue
+        peri = float(cv2.arcLength(cnt, True))
+        if peri <= 0:
+            continue
+
+        eps = eps_mul
+        approx = cv2.approxPolyDP(cnt, eps * peri, True)
+        for _ in range(12):
+            if len(approx) <= maks_simpul:
+                break
+            eps *= 1.25
+            approx = cv2.approxPolyDP(cnt, eps * peri, True)
+
+        if len(approx) < 3:
+            hull = cv2.convexHull(cnt)
+            approx = cv2.approxPolyDP(hull, 0.02 * float(cv2.arcLength(hull, True)), True)
+            if len(approx) < 3:
+                continue
+
+        titik = [
+            [
+                round(min(1.0, max(0.0, float((pt[0][0] + x1) / w))), 3),
+                round(min(1.0, max(0.0, float((pt[0][1] + y1) / h))), 3),
+            ]
+            for pt in approx
+        ]
+        daftar_poligon.append(titik)
+        total_luas_px += luas_px
+
+    if not daftar_poligon:
+        return None, None
+    rasio_luas = total_luas_px / max(1.0, float(h * w))
+    return daftar_poligon, rasio_luas
 
 
 def _jenis_sesuai_area(jenis_dasar: str, area: str) -> str:
@@ -393,10 +510,24 @@ def _jenis_sesuai_area(jenis_dasar: str, area: str) -> str:
     return jenis_dasar
 
 
-def _petakan_ke_homewise(kelas_bd3: str, prob: float, area: str, kotak: tuple[float, float, float, float]):
+def _petakan_ke_homewise(
+    kelas_bd3: str,
+    prob: float,
+    area: str,
+    kotak: tuple[float, float, float, float],
+    poligon_list: list[list[list[float]]] | None = None,
+    rasio_luas: float | None = None,
+):
     """Memetakan kelas visual BD3 + konteks area foto ke skema temuan HomeWise."""
     _, _, lebar, tinggi = kotak
-    luas_m2 = round(float(min(20.0, max(0.5, lebar * tinggi * 12.0))), 1)
+    if rasio_luas is not None and rasio_luas > 0:
+        if kelas_bd3 in ("major_crack", "minor_crack"):
+            rasio_efektif = max(rasio_luas, 0.35 * lebar * tinggi)
+        else:
+            rasio_efektif = rasio_luas
+    else:
+        rasio_efektif = lebar * tinggi
+    luas_m2 = round(float(min(20.0, max(0.5, rasio_efektif * 12.0))), 1)
 
     if kelas_bd3 == "major_crack":
         tingkat = "berat"
@@ -430,6 +561,8 @@ def _petakan_ke_homewise(kelas_bd3: str, prob: float, area: str, kotak: tuple[fl
             "lebar": round(float(kotak[2]), 3),
             "tinggi": round(float(kotak[3]), 3),
         },
+        "poligon": poligon_list[0] if poligon_list else None,
+        "poligon_list": poligon_list,
     }
 
 
@@ -452,24 +585,46 @@ def _pilih_kotak_closeup(kelas_bd3: str, peta_kandidat: dict) -> tuple[float, fl
     else:
         kunci = "retak_dinding"
 
-    if peta_kandidat.get(kunci):
-        return peta_kandidat[kunci][0][0]
+    daftar_kotak = peta_kandidat.get(kunci)
+    if daftar_kotak:
+        if len(daftar_kotak) == 1:
+            return daftar_kotak[0][0]
+        x1 = min(b[0] for b, _ in daftar_kotak)
+        y1 = min(b[1] for b, _ in daftar_kotak)
+        x2 = max(b[0] + b[2] for b, _ in daftar_kotak)
+        y2 = max(b[1] + b[3] for b, _ in daftar_kotak)
+        return (x1, y1, x2 - x1, y2 - y1)
     return (0.04, 0.04, 0.92, 0.92)
 
 
-def _analisis_satu_foto(jalur_berkas: Path, foto_id: int, area: str, ambang: float = 0.45) -> list[dict]:
+def _iou_kotak(a: dict, b: dict) -> float:
+    ax1, ay1 = a["x"], a["y"]
+    ax2, ay2 = ax1 + a["lebar"], ay1 + a["tinggi"]
+    bx1, by1 = b["x"], b["y"]
+    bx2, by2 = bx1 + b["lebar"], by1 + b["tinggi"]
+    ix1, iy1 = max(ax1, bx1), max(ay1, by1)
+    ix2, iy2 = min(ax2, bx2), min(ay2, by2)
+    iw, ih = max(0.0, ix2 - ix1), max(0.0, iy2 - iy1)
+    inter = iw * ih
+    if inter <= 0:
+        return 0.0
+    union = a["lebar"] * a["tinggi"] + b["lebar"] * b["tinggi"] - inter
+    return inter / union if union > 0 else 0.0
+
+
+def _analisis_satu_foto(jalur_berkas: Path, foto_id: int, area: str, ambang: float = 0.38) -> list[dict]:
     sesi, clf, kelas = _muat_model()
     with Image.open(jalur_berkas) as im:
         img_rgb = np.array(im.convert("RGB"))
 
     info = _buat_masker_permukaan(img_rgb, area)
-    peta_kandidat = _kandidat_kontur_kerusakan(info, area)
+    peta_kandidat, peta_mask = _kandidat_kontur_kerusakan(info, area)
 
     daftar_kandidat = []
     potongan = [img_rgb]
+    batas_kandidat = {"retak_dinding": 3, "cat_mengelupas": 2, "noda_lembap": 2}
     for jenis_dasar, kotak_list in peta_kandidat.items():
-        if kotak_list:
-            kotak_terbaik, skor_visual = kotak_list[0]
+        for kotak_terbaik, skor_visual in kotak_list[: batas_kandidat.get(jenis_dasar, 1)]:
             daftar_kandidat.append((jenis_dasar, kotak_terbaik, skor_visual))
             potongan.append(_potong_dengan_konteks(img_rgb, kotak_terbaik))
 
@@ -488,9 +643,11 @@ def _analisis_satu_foto(jalur_berkas: Path, foto_id: int, area: str, ambang: flo
     rasio_permukaan = float((info["mask"] > 0).mean())
     adalah_closeup = info["y_lantai"] >= 0.98 and rasio_permukaan >= 0.85
 
-    if adalah_closeup and kelas_global != "plain" and prob_global_max >= 0.50:
+    if adalah_closeup and len(daftar_kandidat) <= 1 and kelas_global != "plain" and prob_global_max >= 0.50:
         kotak_utama = _pilih_kotak_closeup(kelas_global, peta_kandidat)
-        temuan = _petakan_ke_homewise(kelas_global, prob_global_max, area, kotak_utama)
+        kunci_mask = _kunci_mask_dari_kelas(kelas_global)
+        poligon_list, rasio_luas = _ekstrak_poligon(peta_mask[kunci_mask], kotak_utama, kunci_mask)
+        temuan = _petakan_ke_homewise(kelas_global, prob_global_max, area, kotak_utama, poligon_list=poligon_list, rasio_luas=rasio_luas)
         if temuan:
             temuan["foto_id"] = foto_id
             return [temuan]
@@ -501,41 +658,85 @@ def _analisis_satu_foto(jalur_berkas: Path, foto_id: int, area: str, ambang: flo
         "retak_dinding": ("major_crack", "minor_crack"),
     }
 
-    hasil_per_jenis = {}
+    hasil_temuan = []
     for idx_k, (jenis_dasar, kotak, skor_visual) in enumerate(daftar_kandidat, start=1):
         pvec = probas[idx_k]
         prob_plain = float(pvec[idx_plain]) if idx_plain >= 0 else 0.0
         prob_non_plain = 1.0 - prob_plain
-        k1, k2 = keluarga_bd3[jenis_dasar]
-        p1 = float(pvec[idx_kelas[k1]]) if k1 in idx_kelas else 0.0
-        p2 = float(pvec[idx_kelas[k2]]) if k2 in idx_kelas else 0.0
-        prob_keluarga = p1 + p2
+        skor_keluarga = {}
+        for nama_kel, (c1, c2) in keluarga_bd3.items():
+            v1 = float(pvec[idx_kelas[c1]]) if c1 in idx_kelas else 0.0
+            v2 = float(pvec[idx_kelas[c2]]) if c2 in idx_kelas else 0.0
+            skor_keluarga[nama_kel] = (v1 + v2, c1, v1, c2, v2)
 
-        if prob_keluarga >= ambang:
-            kelas_terpilih = k1 if p1 >= p2 else k2
-            prob_akhir = max(prob_keluarga, min(0.95, 0.55 * prob_keluarga + 0.45 * skor_visual))
-        elif skor_visual >= 0.50 and prob_non_plain >= 0.65:
-            kelas_terpilih = k2 if p2 > p1 * 1.4 else k1
-            prob_akhir = min(0.92, 0.45 + 0.35 * skor_visual + 0.20 * prob_non_plain)
+        prob_keluarga, k1, p1, k2, p2 = skor_keluarga[jenis_dasar]
+        kel_ai, _ = max(skor_keluarga.items(), key=lambda kv: kv[1][0])
+
+        if jenis_dasar in ("noda_lembap", "cat_mengelupas"):
+            if prob_keluarga >= ambang:
+                kelas_terpilih = k1 if p1 >= p2 else k2
+                prob_akhir = max(prob_keluarga, min(0.95, 0.55 * prob_keluarga + 0.45 * skor_visual))
+                mask_dipakai = jenis_dasar
+            elif skor_visual >= 0.45 and prob_non_plain >= 0.55:
+                kelas_terpilih = k2 if p2 > p1 * 1.4 else k1
+                prob_akhir = min(0.92, 0.45 + 0.35 * skor_visual + 0.20 * prob_non_plain)
+                mask_dipakai = jenis_dasar
+            else:
+                continue
         else:
-            continue
+            prob_peel, pk1, pp1, pk2, pp2 = skor_keluarga["cat_mengelupas"]
+            if prob_keluarga >= ambang and prob_keluarga >= prob_peel:
+                kelas_terpilih = k1 if p1 >= p2 else k2
+                prob_akhir = max(prob_keluarga, min(0.95, 0.55 * prob_keluarga + 0.45 * skor_visual))
+                mask_dipakai = "retak_dinding"
+            elif prob_peel >= 0.50 and (kotak[2] * kotak[3]) >= 0.012:
+                kelas_terpilih = pk1 if pp1 >= pp2 else pk2
+                prob_akhir = min(0.93, max(prob_peel, 0.55 * prob_peel + 0.35 * skor_visual))
+                mask_dipakai = "cat_mengelupas"
+            elif (
+                skor_visual >= 0.45
+                and prob_non_plain >= 0.55
+                and prob_keluarga >= 0.20
+                and kel_ai == "retak_dinding"
+                and prob_plain < 0.65
+            ):
+                kelas_terpilih = k2 if p2 > p1 * 1.4 else k1
+                prob_akhir = min(0.92, 0.45 + 0.35 * skor_visual + 0.20 * prob_non_plain)
+                mask_dipakai = "retak_dinding"
+            else:
+                continue
 
-        temuan = _petakan_ke_homewise(kelas_terpilih, prob_akhir, area, kotak)
+        poligon_list, rasio_luas = _ekstrak_poligon(peta_mask[mask_dipakai], kotak, mask_dipakai)
+        if poligon_list is None and mask_dipakai != jenis_dasar:
+            poligon_list, rasio_luas = _ekstrak_poligon(peta_mask[jenis_dasar], kotak, jenis_dasar)
+        temuan = _petakan_ke_homewise(kelas_terpilih, prob_akhir, area, kotak, poligon_list=poligon_list, rasio_luas=rasio_luas)
         if not temuan:
             continue
         temuan["foto_id"] = foto_id
-        jenis_hw = temuan["jenis"]
-        if jenis_hw not in hasil_per_jenis or temuan["kepercayaan"] > hasil_per_jenis[jenis_hw]["kepercayaan"]:
-            hasil_per_jenis[jenis_hw] = temuan
+        indeks_sama = next(
+            (
+                i
+                for i, ada in enumerate(hasil_temuan)
+                if (ada["jenis"] == temuan["jenis"] and _iou_kotak(ada["kotak"], temuan["kotak"]) >= 0.25)
+                or _iou_kotak(ada["kotak"], temuan["kotak"]) >= 0.50
+            ),
+            None,
+        )
+        if indeks_sama is None:
+            hasil_temuan.append(temuan)
+        elif temuan["kepercayaan"] > hasil_temuan[indeks_sama]["kepercayaan"]:
+            hasil_temuan[indeks_sama] = temuan
 
-    if not hasil_per_jenis and kelas_global != "plain" and prob_global_max >= ambang:
+    if not hasil_temuan and kelas_global != "plain" and prob_global_max >= ambang:
         kotak_fallback = _pilih_kotak_closeup(kelas_global, peta_kandidat)
-        temuan = _petakan_ke_homewise(kelas_global, prob_global_max, area, kotak_fallback)
+        kunci_mask = _kunci_mask_dari_kelas(kelas_global)
+        poligon_list, rasio_luas = _ekstrak_poligon(peta_mask[kunci_mask], kotak_fallback, kunci_mask)
+        temuan = _petakan_ke_homewise(kelas_global, prob_global_max, area, kotak_fallback, poligon_list=poligon_list, rasio_luas=rasio_luas)
         if temuan:
             temuan["foto_id"] = foto_id
             return [temuan]
 
-    return sorted(hasil_per_jenis.values(), key=lambda x: x["kepercayaan"], reverse=True)[:3]
+    return sorted(hasil_temuan, key=lambda x: x["kepercayaan"], reverse=True)[:4]
 
 
 def analisis_foto(daftar_foto: list[dict], dir_unggahan: Path) -> dict:

@@ -216,7 +216,7 @@ def jalankan_pelatihan(dir_dataset: Path = DIR_DATASET, dir_artefak: Path = DIR_
     clf.save_model(str(jalur_xgb))
 
     metadata = {
-        "dataset": "BD3 Building Defects Detection Dataset (3.965 gambar asli)",
+        "dataset": f"BD3 + negatif ruangan bersih ({len(jalur_gambar)} gambar)",
         "sumber_url": URL_DATASET_BD3,
         "ekstraktor": "MobileNetV2 (ImageNet weights, 1280 fitur) + CLAHE LAB",
         "classifier": "XGBoost (XGBClassifier)",

@@ -1,7 +1,9 @@
 .logo {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  width: fit-content;
+  align-self: flex-start;
+  line-height: 0;
 }
 
 .logo__teks {

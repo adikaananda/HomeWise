@@ -1,10 +1,11 @@
 {
-  "dataset": "BD3 Building Defects Detection Dataset (3.965 gambar asli)",
+  "dataset": "BD3 + negatif ruangan bersih (4345 gambar)",
+  "sumber_url": "https://www.kaggle.com/api/v1/datasets/download/praveenkottari/bd3-dataset-for-building-defect-detection + Wikimedia Commons",
   "ekstraktor": "MobileNetV2 (ImageNet weights, 1280 fitur) + CLAHE LAB",
   "classifier": "XGBoost (XGBClassifier)",
   "split": "80:20 stratified",
-  "jumlah_latih": 3172,
-  "jumlah_uji": 793,
+  "jumlah_latih": 3476,
+  "jumlah_uji": 869,
   "kelas": [
     "algae",
     "major_crack",
@@ -15,42 +16,42 @@
     "stain"
   ],
   "metrik": {
-    "akurasi": 0.8764,
-    "precision_makro": 0.8768,
-    "recall_sensitivitas_makro": 0.8752,
-    "spesifisitas_makro": 0.9794,
-    "f1_makro": 0.8757
+    "akurasi": 0.8918,
+    "precision_makro": 0.8849,
+    "recall_sensitivitas_makro": 0.8829,
+    "spesifisitas_makro": 0.982,
+    "f1_makro": 0.8836
   },
   "laporan_per_kelas": {
     "algae": {
-      "precision": 0.9302325581395349,
-      "recall": 0.967741935483871,
-      "f1-score": 0.9486166007905138,
+      "precision": 0.937007874015748,
+      "recall": 0.9596774193548387,
+      "f1-score": 0.9482071713147411,
       "support": 124.0
     },
     "major_crack": {
-      "precision": 0.7704918032786885,
-      "recall": 0.8103448275862069,
-      "f1-score": 0.7899159663865546,
+      "precision": 0.808695652173913,
+      "recall": 0.8017241379310345,
+      "f1-score": 0.8051948051948052,
       "support": 116.0
     },
     "minor_crack": {
-      "precision": 0.8278688524590164,
-      "recall": 0.808,
-      "f1-score": 0.8178137651821862,
+      "precision": 0.847457627118644,
+      "recall": 0.8,
+      "f1-score": 0.823045267489712,
       "support": 125.0
     },
     "peeling": {
-      "precision": 0.9038461538461539,
-      "recall": 0.9038461538461539,
-      "f1-score": 0.9038461538461539,
+      "precision": 0.8807339449541285,
+      "recall": 0.9230769230769231,
+      "f1-score": 0.9014084507042254,
       "support": 104.0
     },
     "plain": {
-      "precision": 0.9583333333333334,
-      "recall": 0.9583333333333334,
-      "f1-score": 0.9583333333333334,
-      "support": 120.0
+      "precision": 0.9504950495049505,
+      "recall": 0.9795918367346939,
+      "f1-score": 0.964824120603015,
+      "support": 196.0
     },
     "spalling": {
       "precision": 0.9166666666666666,
@@ -59,88 +60,88 @@
       "support": 100.0
     },
     "stain": {
-      "precision": 0.83,
-      "recall": 0.7980769230769231,
-      "f1-score": 0.8137254901960784,
+      "precision": 0.8529411764705882,
+      "recall": 0.8365384615384616,
+      "f1-score": 0.8446601941747572,
       "support": 104.0
     },
-    "accuracy": 0.8764186633039092,
+    "accuracy": 0.8918296892980437,
     "macro avg": {
-      "precision": 0.8767770525319134,
-      "recall": 0.875191881903784,
-      "f1-score": 0.8757443562011842,
-      "support": 793.0
+      "precision": 0.8848568558435198,
+      "recall": 0.8829441112337075,
+      "f1-score": 0.8836141704506751,
+      "support": 869.0
     },
     "weighted avg": {
-      "precision": 0.8766660272555787,
-      "recall": 0.8764186633039092,
-      "f1-score": 0.8763036577482679,
-      "support": 793.0
+      "precision": 0.8909042398363229,
+      "recall": 0.8918296892980437,
+      "f1-score": 0.8910857654255367,
+      "support": 869.0
     }
   },
   "confusion_matrix": [
     [
-      120,
+      119,
       0,
       0,
-      0,
+      1,
       0,
       0,
       4
     ],
     [
       2,
-      94,
-      15,
-      1,
+      93,
+      14,
       2,
       2,
+      3,
       0
     ],
     [
       0,
       15,
-      101,
+      100,
       1,
-      3,
-      1,
-      4
-    ],
-    [
-      0,
       4,
-      0,
-      94,
-      0,
-      2,
+      1,
       4
     ],
     [
       0,
-      2,
+      3,
+      0,
+      96,
+      0,
+      3,
+      2
+    ],
+    [
+      0,
+      1,
       0,
       0,
-      115,
+      192,
       0,
       3
     ],
     [
       2,
+      2,
+      1,
       5,
-      0,
-      3,
       0,
       88,
       2
     ],
     [
-      5,
-      2,
-      6,
-      5,
-      0,
+      4,
+      1,
       3,
-      83
+      4,
+      4,
+      1,
+      87
     ]
   ]
 }

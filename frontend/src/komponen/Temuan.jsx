@@ -11,30 +11,96 @@ const LABEL_STATUS = {
   analis: { teks: "Temuan analis", nada: "sukses" },
 };
 
+const PALET_TEMUAN = [
+  { garis: "#ef4444", isi: "rgba(239, 68, 68, 0.16)" },
+  { garis: "#f59e0b", isi: "rgba(245, 158, 11, 0.16)" },
+  { garis: "#06b6d4", isi: "rgba(6, 182, 212, 0.16)" },
+  { garis: "#a855f7", isi: "rgba(168, 85, 247, 0.16)" },
+  { garis: "#84cc16", isi: "rgba(132, 204, 22, 0.16)" },
+  { garis: "#ec4899", isi: "rgba(236, 72, 153, 0.16)" },
+];
+
+function daftarPoligon(t) {
+  if (Array.isArray(t.poligon_list) && t.poligon_list.length > 0) {
+    return t.poligon_list.filter((p) => Array.isArray(p) && p.length >= 3);
+  }
+  if (Array.isArray(t.poligon) && t.poligon.length >= 3) {
+    return [t.poligon];
+  }
+  return [];
+}
+
 export function FotoBertanda({ foto, temuan }) {
   const konfigurasi = useKonfigurasi();
   const { jenis_kerusakan: jenis } = konfigurasi;
-  const milikFoto = temuan.filter((t) => t.foto_id === foto.id && t.kotak && t.status !== "ditolak");
+  const milikFoto = temuan
+    .filter((t) => t.foto_id === foto.id && (t.kotak || daftarPoligon(t).length > 0) && t.status !== "ditolak")
+    .map((t, idx) => ({
+      temuan: t,
+      poligonList: daftarPoligon(t),
+      warna: PALET_TEMUAN[idx % PALET_TEMUAN.length],
+    }));
+  const itemPoligon = milikFoto.filter((item) => item.poligonList.length > 0);
+  const itemKotak = milikFoto.filter((item) => item.poligonList.length === 0 && item.temuan.kotak);
+
+  const labelTeks = (t) =>
+    `${jenis[t.jenis] || t.jenis}${t.tingkat ? ` · ${t.tingkat}` : ""}${t.kepercayaan ? ` ${Math.round(t.kepercayaan * 100)}%` : ""}`;
+
   return (
     <figure className="foto-bertanda">
       <div className="foto-bertanda__gambar">
         <img src={urlBerkas(foto.url)} alt={`Foto ${labelArea(konfigurasi, foto.area)}`} loading="lazy" />
-        {milikFoto.map((t, i) => (
+        {itemPoligon.length > 0 && (
+          <svg className="lapis-poligon" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            {itemPoligon.map(({ poligonList, warna }, i) =>
+              poligonList.map((poli, pIdx) => (
+                <polygon
+                  key={`pg-${i}-${pIdx}`}
+                  points={poli.map(([x, y]) => `${x * 100},${y * 100}`).join(" ")}
+                  vectorEffect="non-scaling-stroke"
+                  className="poligon-temuan"
+                  style={{ stroke: warna.garis, fill: warna.isi }}
+                />
+              ))
+            )}
+          </svg>
+        )}
+        {itemPoligon.map(({ poligonList, warna }, i) =>
+          poligonList.map((poli, pIdx) =>
+            poli.map(([x, y], j) => (
+              <span
+                key={`s-${i}-${pIdx}-${j}`}
+                className="simpul-temuan"
+                style={{ left: `${x * 100}%`, top: `${y * 100}%`, background: warna.garis }}
+                aria-hidden="true"
+              />
+            ))
+          )
+        )}
+        {itemKotak.map(({ temuan: t, warna }, i) => (
           <div
-            key={i}
+            key={`k-${i}`}
             className="kotak-temuan"
             style={{
               left: `${t.kotak.x * 100}%`,
               top: `${t.kotak.y * 100}%`,
               width: `${t.kotak.lebar * 100}%`,
               height: `${t.kotak.tinggi * 100}%`,
+              borderColor: warna.garis,
+              background: warna.isi,
             }}
-          >
-            <span>
-              {jenis[t.jenis] || t.jenis} {t.kepercayaan ? `${Math.round(t.kepercayaan * 100)}%` : ""}
-            </span>
-          </div>
+          />
         ))}
+        {milikFoto.length > 0 && (
+          <div className="legenda-temuan" aria-label="Legenda temuan">
+            {milikFoto.map(({ temuan: t, warna }, i) => (
+              <div className="legenda-temuan__item" key={i}>
+                <span className="legenda-temuan__titik" style={{ background: warna.garis }} aria-hidden="true" />
+                <span>{labelTeks(t)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <figcaption className="teks-mini teks-redup">
         {labelArea(konfigurasi, foto.area)}

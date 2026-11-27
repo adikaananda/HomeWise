@@ -70,7 +70,7 @@ def _pasang_cors(app):
 
 
 def _sajikan_frontend(app):
-    folder = Path(app.config["DIR_FRONTEND"])
+    folder = Path(app.config["DIR_FRONTEND"]).resolve()
 
     @app.get("/", defaults={"jalur": ""})
     @app.get("/<path:jalur>")

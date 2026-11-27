@@ -79,7 +79,7 @@ def cek_cepat():
 def berkas(nama):
     if "/" in nama or ".." in nama:
         raise GalatAplikasi("Berkas tidak ditemukan.", 404)
-    folder = Path(current_app.config["DIR_UNGGAHAN"])
+    folder = Path(current_app.config["DIR_UNGGAHAN"]).resolve()
     if not (folder / nama).exists():
         raise GalatAplikasi("Berkas tidak ditemukan.", 404)
     return send_from_directory(folder, nama, max_age=86400)
