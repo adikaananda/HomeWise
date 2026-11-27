@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LuMenu, LuX } from "react-icons/lu";
+import { LuLogOut, LuMenu, LuX } from "react-icons/lu";
 import { BERANDA_PERAN, useAuth } from "../../lib/auth";
 import { Tautan, useRouter } from "../../lib/router";
 import { Tombol } from "../ui";
@@ -13,7 +13,7 @@ const MENU = [
 ];
 
 export function NavbarPublik() {
-  const { pengguna } = useAuth();
+  const { pengguna, keluar } = useAuth();
   const { jalur } = useRouter();
   const [terbuka, setTerbuka] = useState(false);
   const [tergulir, setTergulir] = useState(false);
@@ -49,7 +49,12 @@ export function NavbarPublik() {
         </nav>
         <div className="navbar__aksi">
           {pengguna ? (
-            <Tombol ke={BERANDA_PERAN[pengguna.peran]}>Buka dasbor</Tombol>
+            <>
+              <Tombol varian="hantu" ikon={LuLogOut} onClick={keluar}>
+                Keluar
+              </Tombol>
+              <Tombol ke={BERANDA_PERAN[pengguna.peran]}>Buka dasbor</Tombol>
+            </>
           ) : (
             <>
               <Tombol varian="hantu" ke="/masuk">
@@ -68,9 +73,14 @@ export function NavbarPublik() {
           <nav className="wadah tumpuk" aria-label="Navigasi seluler">
             {MENU.map(tautanMenu)}
             {pengguna ? (
-              <Tombol ke={BERANDA_PERAN[pengguna.peran]} penuh>
-                Buka dasbor
-              </Tombol>
+              <div className="kisi-2">
+                <Tombol varian="sekunder" ikon={LuLogOut} onClick={() => { keluar(); setTerbuka(false); }} penuh>
+                  Keluar
+                </Tombol>
+                <Tombol ke={BERANDA_PERAN[pengguna.peran]} penuh>
+                  Buka dasbor
+                </Tombol>
+              </div>
             ) : (
               <div className="kisi-2">
                 <Tombol varian="sekunder" ke="/masuk" penuh>
