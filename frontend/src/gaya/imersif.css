@@ -844,3 +844,267 @@
 
 .penggerak__baris strong { text-align: right; }
 .peringkat-kelompok__dominan span:last-child svg { color: var(--biru) !important; }
+
+/* ==========================================================================
+   Revisi landing: navbar, 3D, segmen foto, fasilitas, banner
+   ========================================================================== */
+main section[id] { scroll-margin-top: 84px; }
+
+/* Navbar */
+.navbar { transition: background 0.3s, box-shadow 0.3s, border-color 0.3s; }
+.navbar--tergulir { background: rgba(255, 255, 255, 0.82) !important; backdrop-filter: saturate(1.6) blur(14px); }
+.navbar__isi { gap: 16px; }
+.navbar__menu { position: relative; align-items: center; padding: 4px; border-radius: 999px; }
+@media (min-width: 960px) {
+  .navbar__menu { background: rgba(10, 67, 239, 0.05); border: 1px solid rgba(10, 67, 239, 0.08); }
+}
+.navbar__menu .navbar__tautan {
+  position: relative;
+  z-index: 1;
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: var(--tinta-2);
+  font-weight: 600;
+  font-size: var(--teks-sm);
+  white-space: nowrap;
+  transition: color 0.25s;
+  background: none !important;
+}
+.navbar__menu .navbar__tautan:hover { color: var(--biru-tua); }
+.navbar__menu .navbar__tautan[data-aktif="true"] { color: #fff; }
+.navbar__penanda {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 999px;
+  background: var(--gr-biru-langit);
+  box-shadow: 0 8px 20px -10px rgba(10, 67, 239, 0.8);
+  transition: transform 0.45s var(--pegas), width 0.45s var(--pegas);
+}
+.navbar__cta { box-shadow: 0 10px 24px -12px rgba(10, 67, 239, 0.8); }
+.navbar__burger { transition: transform 0.25s var(--mulus); }
+.navbar--terbuka .navbar__burger { transform: rotate(90deg); }
+.navbar__laci {
+  position: absolute;
+  inset: 100% 0 auto;
+  z-index: 2;
+  display: block !important;
+  padding: 0 !important;
+  border-top: 0 !important;
+  background: #fff;
+  box-shadow: 0 30px 50px -30px rgba(8, 50, 200, 0.45);
+  clip-path: inset(0 0 100% 0);
+  visibility: hidden;
+  transition: clip-path 0.45s var(--mulus), visibility 0s 0.45s;
+}
+.navbar--terbuka .navbar__laci { clip-path: inset(0 0 0 0); visibility: visible; transition: clip-path 0.45s var(--mulus); }
+.navbar__laci-isi { display: grid; gap: 2px; padding-block: 12px 20px; }
+.navbar__laci .navbar__tautan {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px !important;
+  border-radius: 14px;
+  border-bottom: 0 !important;
+  color: var(--tinta);
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.3s, transform 0.3s var(--mulus), background 0.2s;
+}
+.navbar--terbuka .navbar__laci .navbar__tautan { opacity: 1; transform: none; }
+.navbar--terbuka .navbar__laci .navbar__tautan:nth-child(2) { transition-delay: 0.03s; }
+.navbar--terbuka .navbar__laci .navbar__tautan:nth-child(3) { transition-delay: 0.06s; }
+.navbar--terbuka .navbar__laci .navbar__tautan:nth-child(4) { transition-delay: 0.09s; }
+.navbar--terbuka .navbar__laci .navbar__tautan:nth-child(5) { transition-delay: 0.12s; }
+.navbar--terbuka .navbar__laci .navbar__tautan:nth-child(6) { transition-delay: 0.15s; }
+.navbar__laci .navbar__tautan svg:first-child { width: 20px; height: 20px; color: var(--tosca); }
+.navbar__laci .navbar__tautan[data-aktif="true"] { background: var(--gr-lembut); color: var(--biru-tua); }
+.navbar__panah { margin-left: auto; width: 16px; height: 16px; color: var(--abu-muda); }
+.navbar__laci-aksi { margin-top: 12px; }
+.navbar__tirai { position: fixed; inset: 0; top: 68px; z-index: 1; background: rgba(8, 20, 60, 0.25); backdrop-filter: blur(2px); animation: teks-masuk 0.3s; }
+@media (min-width: 960px) { .navbar__laci, .navbar__tirai { display: none !important; } }
+@media (min-width: 960px) and (max-width: 1180px) { .navbar__menu .navbar__tautan { padding: 8px 10px; font-size: 13px; } }
+
+/* Fitur: ilustrasi fasilitas */
+.ilus-fasilitas { position: relative; display: grid; grid-template-columns: 1fr; place-items: center; min-height: 240px; margin-top: auto; padding-top: 12px; }
+.ilus-fasilitas__radar { position: absolute; inset: 12px 0 0; display: grid; place-items: center; pointer-events: none; }
+.ilus-fasilitas__radar span {
+  position: absolute;
+  width: 220px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid rgba(20, 186, 206, 0.35);
+  animation: radar 3.6s ease-out infinite;
+}
+.ilus-fasilitas__radar span:nth-child(2) { animation-delay: 1.2s; }
+.ilus-fasilitas__radar span:nth-child(3) { animation-delay: 2.4s; }
+@keyframes radar { from { transform: scale(0.35); opacity: 0.9; } to { transform: scale(1.25); opacity: 0; } }
+.ilus-fasilitas__maskot { position: relative; width: 170px; height: auto; filter: drop-shadow(0 16px 18px rgba(8, 50, 200, 0.2)); }
+.ilus-fasilitas__chip { list-style: none; margin: 0; padding: 0; position: absolute; inset: 0; }
+.ilus-fasilitas__chip li {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--garis);
+  box-shadow: 0 10px 24px -14px rgba(8, 50, 200, 0.5);
+  font-size: 12px;
+  white-space: nowrap;
+  animation: chip-melayang 4s ease-in-out infinite;
+  animation-delay: calc(var(--urut) * -1s);
+}
+.ilus-fasilitas__chip li svg { width: 14px; height: 14px; color: var(--biru); }
+.ilus-fasilitas__chip li strong { color: var(--hijau); }
+.ilus-fasilitas__chip li:nth-child(1) { top: 18%; left: 2%; }
+.ilus-fasilitas__chip li:nth-child(2) { top: 12%; right: 2%; }
+.ilus-fasilitas__chip li:nth-child(3) { bottom: 14%; left: 6%; }
+.ilus-fasilitas__chip li:nth-child(4) { bottom: 20%; right: 4%; }
+@keyframes chip-melayang { 0%, 100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+
+/* Segmen foto */
+.segmen-kartu__gambar { position: relative; }
+.segmen-kartu__foto { transition: transform 0.7s var(--mulus); }
+.segmen-kartu:hover .segmen-kartu__foto { transform: scale(1.07); }
+.segmen-kartu__gambar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 45%, rgba(8, 50, 200, 0.55));
+  pointer-events: none;
+}
+.segmen-kartu__aset { width: 58% !important; height: auto !important; object-fit: contain !important; filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.25)); }
+.segmen-kartu__label {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  color: var(--biru-tua);
+  font-size: 12px;
+  font-weight: 700;
+}
+.segmen-kartu__label svg { width: 14px; height: 14px; }
+
+/* Banner: rumah + maskot */
+.banner__adegan { position: relative; display: grid; place-items: end center; }
+.banner__adegan .banner__rumah { margin-bottom: -8px; }
+.banner__adegan .banner__maskot {
+  position: absolute;
+  bottom: 0;
+  left: 6%;
+  width: min(190px, 34%) !important;
+  z-index: 1;
+  filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.3));
+}
+
+/* Jelajah 3D */
+.jelajah3d { position: relative; overflow: hidden; background: linear-gradient(180deg, #f7fbff 0%, #effaf4 100%); }
+.jelajah3d__isi { display: grid; gap: 32px; align-items: center; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 980px) { .jelajah3d__isi { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); } }
+.jelajah3d__teks h2 { font-size: clamp(1.5rem, 1.25rem + 1vw, 1.9rem); font-weight: 800; }
+.jelajah3d__teks > p { margin-top: 10px; }
+.jelajah3d__daftar { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 10px; }
+.jelajah3d__daftar button {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--garis);
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.3s var(--mulus), border-color 0.3s, box-shadow 0.3s;
+}
+.jelajah3d__daftar button:hover { transform: translateX(4px); border-color: rgba(20, 186, 206, 0.5); }
+.jelajah3d__daftar button.aktif { border-color: transparent; background: linear-gradient(#fff, #fff) padding-box, var(--gr-biru-lime) border-box; border: 1.5px solid transparent; box-shadow: 0 16px 32px -22px rgba(8, 50, 200, 0.6); }
+.jelajah3d__daftar strong { display: block; font-size: var(--teks-sm); color: var(--tinta); }
+.jelajah3d__daftar small { display: block; font-size: 12.5px; color: var(--abu); line-height: 1.45; margin-top: 2px; }
+.jelajah3d__ikon { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; background: var(--gr-lembut); color: var(--biru); }
+.jelajah3d__ikon svg { width: 18px; height: 18px; }
+.jelajah3d__daftar button.aktif .jelajah3d__ikon { background: var(--gr-biru-langit); color: #fff; }
+.jelajah3d__panggung { position: relative; }
+
+.rumah3d { position: relative; aspect-ratio: 1.15; min-height: 340px; border-radius: 32px; overflow: hidden; touch-action: pan-y; }
+.rumah3d__latar {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 60% at 50% 35%, rgba(42, 202, 252, 0.35), transparent 70%),
+    radial-gradient(50% 40% at 50% 100%, rgba(161, 224, 91, 0.35), transparent 70%),
+    linear-gradient(180deg, #e8f6ff 0%, #f3fdf6 100%);
+}
+.rumah3d__kanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+.rumah3d__kanvas:active { cursor: grabbing; }
+.rumah3d__titik {
+  position: absolute;
+  left: -17px;
+  top: -17px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: var(--gr-biru-langit);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 8px 18px -6px rgba(10, 67, 239, 0.8);
+  will-change: transform;
+}
+.rumah3d__titik svg { width: 15px; height: 15px; }
+.rumah3d__titik::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid rgba(42, 202, 252, 0.9); animation: denyut-cincin 1.8s ease-out infinite; }
+.rumah3d__titik--aktif { background: var(--gr-biru-lime); scale: 1.15; }
+.rumah3d__cadangan { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; }
+.rumah3d__petunjuk {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tinta-2);
+  pointer-events: none;
+}
+.jelajah3d__kartu {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 16px;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 40px -24px rgba(8, 50, 200, 0.6);
+  animation: gelembung-masuk 0.45s var(--pegas) both;
+}
+.jelajah3d__kartu > svg { flex: none; width: 22px; height: 22px; color: var(--biru); margin-top: 2px; }
+.jelajah3d__kartu strong { display: block; margin-bottom: 2px; }
+.jelajah3d__kartu button { margin-left: auto; border: 0; background: none; cursor: pointer; color: var(--abu); padding: 2px; }
+@media (max-width: 979px) { .jelajah3d__panggung { order: -1; } }
+.navbar.navbar--terbuka { backdrop-filter: none !important; background: #fff !important; }

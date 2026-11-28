@@ -3,8 +3,13 @@ import {
   LuArrowRight,
   LuBriefcase,
   LuBuilding2,
+  LuBus,
   LuCamera,
   LuChevronRight,
+  LuGraduationCap,
+  LuHospital,
+  LuShoppingBag,
+  LuX,
   LuCircleCheck,
   LuFileText,
   LuHouse,
@@ -18,7 +23,7 @@ import {
   LuUtensils,
 } from "react-icons/lu";
 import { IlustrasiBiaya, IlustrasiPemindai, IlustrasiPeta, IlustrasiRumah } from "../../komponen/ilustrasi/Ilustrasi";
-import { TataLetakPublik } from "../../komponen/tata-letak/Publik";
+import { TataLetakPublik, useGulirTertunda } from "../../komponen/tata-letak/Publik";
 import { BatangSkor, CincinSkor, GambarDenganCadangan, LencanaLevel, Segmen, Tombol } from "../../komponen/ui";
 import { GAMBAR } from "../../data/gambar";
 import { api } from "../../lib/api";
@@ -28,6 +33,7 @@ import { useJudul } from "../../lib/hooks";
 import { useKonfigurasi } from "../../lib/konfigurasi";
 import { KURANGI_GERAK, Muncul, useMiring, useTerlihat } from "../../lib/gerak";
 import { Maskot } from "../../komponen/Maskot";
+import { Rumah3D, TITIK_INFO } from "../../komponen/rumah3d/Rumah3D";
 
 const CONTOH_HASIL = {
   skor_total: 84,
@@ -201,6 +207,35 @@ function Hero() {
   );
 }
 
+const FASILITAS_DEMO = [
+  { ikon: LuHospital, label: "Rumah sakit", jarak: "1,2 km" },
+  { ikon: LuGraduationCap, label: "Sekolah", jarak: "450 m" },
+  { ikon: LuBus, label: "Halte", jarak: "210 m" },
+  { ikon: LuShoppingBag, label: "Pasar", jarak: "800 m" },
+];
+
+function IlustrasiFasilitas({ className = "" }) {
+  return (
+    <div className={`ilus-fasilitas ${className}`} aria-hidden="true">
+      <div className="ilus-fasilitas__radar">
+        <span />
+        <span />
+        <span />
+      </div>
+      <img className="ilus-fasilitas__maskot maskot--melayang" src="/aset/alur/alur2-440.webp" alt="" width="200" height="200" loading="lazy" decoding="async" />
+      <ul className="ilus-fasilitas__chip">
+        {FASILITAS_DEMO.map((f, i) => (
+          <li key={f.label} style={{ "--urut": i }}>
+            <f.ikon />
+            <span>{f.label}</span>
+            <strong>{f.jarak}</strong>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 const FITUR = [
   {
     ikon: LuMapPin,
@@ -213,6 +248,7 @@ const FITUR = [
     ikon: LuBuilding2,
     judul: "Location intelligence",
     teks: "Jarak ke jalan utama, rumah sakit, sekolah, transportasi umum, dan pusat ekonomi dalam radius 5 km.",
+    ilustrasi: IlustrasiFasilitas,
   },
   {
     ikon: LuCamera,
@@ -255,6 +291,52 @@ function Fitur() {
             </Muncul>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function Jelajah3D() {
+  const [aktif, setAktif] = useState(null);
+  const info = TITIK_INFO.find((t) => t.kode === aktif);
+  return (
+    <section className="bagian jelajah3d" id="jelajah">
+      <div className="wadah jelajah3d__isi">
+        <Muncul className="jelajah3d__teks">
+          <span className="eyebrow-gradasi">Interaktif</span>
+          <h2>Lihat apa saja yang diperiksa HomeWise</h2>
+          <p className="teks-redup">Putar rumahnya, lalu ketuk titik biru. Setiap bagian rumah punya analisis sendiri, dari lokasi sampai lantai.</p>
+          <ul className="jelajah3d__daftar" role="list">
+            {TITIK_INFO.map((t, i) => (
+              <li key={t.kode} style={{ "--urut": i }}>
+                <button type="button" className={aktif === t.kode ? "aktif" : ""} onClick={() => setAktif(aktif === t.kode ? null : t.kode)} aria-pressed={aktif === t.kode}>
+                  <span className="jelajah3d__ikon">
+                    <t.ikon aria-hidden="true" />
+                  </span>
+                  <span>
+                    <strong>{t.judul}</strong>
+                    <small>{t.teks}</small>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Muncul>
+        <Muncul jeda={0.1} arah="skala" className="jelajah3d__panggung">
+          <Rumah3D aktif={aktif} onPilih={setAktif} />
+          {info && (
+            <div className="jelajah3d__kartu" key={info.kode}>
+              <info.ikon aria-hidden="true" />
+              <div>
+                <strong>{info.judul}</strong>
+                <p className="teks-kecil">{info.teks}</p>
+              </div>
+              <button type="button" onClick={() => setAktif(null)} aria-label="Tutup">
+                <LuX aria-hidden="true" />
+              </button>
+            </div>
+          )}
+        </Muncul>
       </div>
     </section>
   );
@@ -484,6 +566,7 @@ const SEGMEN = [
     teks: "Pahami risiko banjir, kondisi bangunan, dan biaya renovasi rumah bekas sebelum menawar.",
     gambar: GAMBAR.pembeliRumah,
     latar: "var(--gradasi-merek)",
+    aset: "alur6",
   },
   {
     ikon: LuStore,
@@ -491,6 +574,7 @@ const SEGMEN = [
     teks: "Nilai keramaian, akses jalan, dan kebutuhan renovasi bangunan untuk kafe, restoran, kantor, atau ruko.",
     gambar: GAMBAR.pelakuUsaha,
     latar: "var(--gradasi-segar)",
+    aset: "alur3",
   },
   {
     ikon: LuLandmark,
@@ -498,6 +582,7 @@ const SEGMEN = [
     teks: "Agen, bank, dan perusahaan inspeksi dapat memakai laporan sebagai informasi pendukung keputusan.",
     gambar: GAMBAR.mitraInstitusi,
     latar: "linear-gradient(120deg, #0832c8, #14bace)",
+    aset: "alur7",
   },
 ];
 
@@ -505,9 +590,11 @@ function Segmen3() {
   return (
     <section className="bagian bagian--putih" id="segmen">
       <div className="wadah">
-        <div className="bagian__kepala">
+        <Muncul className="bagian__kepala">
+          <span className="eyebrow-gradasi">Untuk siapa</span>
           <h2>Dibuat untuk keputusan bernilai besar</h2>
-        </div>
+          <p className="teks-redup">Satu platform untuk pembeli rumah, pelaku usaha, dan mitra yang butuh data sebelum mengambil keputusan.</p>
+        </Muncul>
         <div className="kisi-3">
           {SEGMEN.map((s, i) => (
             <Muncul as="article" jeda={i * 0.1} key={s.judul} className="segmen-kartu kartu-angkat">
@@ -515,8 +602,12 @@ function Segmen3() {
                 <GambarDenganCadangan
                   src={s.gambar.src}
                   alt={s.gambar.alt}
-                  cadangan={<s.ikon className="segmen-kartu__ikon-besar" aria-hidden="true" />}
+                  className="segmen-kartu__foto"
+                  cadangan={<img src={`/aset/alur/${s.aset}-440.webp`} alt="" className="segmen-kartu__aset maskot--melayang" loading="lazy" />}
                 />
+                <span className="segmen-kartu__label">
+                  <s.ikon aria-hidden="true" /> {s.judul}
+                </span>
               </div>
               <div className="segmen-kartu__isi">
                 <h3>{s.judul}</h3>
@@ -586,7 +677,10 @@ function Banner() {
             Buat akun gratis
           </Tombol>
         </div>
-        <Maskot pose="sukses" ukuran={240} className="banner__rumah banner__maskot" />
+        <div className="banner__adegan">
+          <IlustrasiRumah className="banner__rumah" />
+          <Maskot pose="sukses" ukuran={190} className="banner__maskot" />
+        </div>
         <div className="banner__catatan">
           <LuShieldCheck aria-hidden="true" />
           HomeWise bukan marketplace dan bukan pengganti inspeksi profesional.
@@ -598,6 +692,7 @@ function Banner() {
 
 export default function Beranda() {
   useJudul();
+  useGulirTertunda();
   return (
     <TataLetakPublik>
       <Hero />
@@ -611,6 +706,7 @@ export default function Beranda() {
         </div>
       </div>
       <Fitur />
+      <Jelajah3D />
       <AnalisisTujuan />
       <CaraKerja />
       <Pembiayaan />
