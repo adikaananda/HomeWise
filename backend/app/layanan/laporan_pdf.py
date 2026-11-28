@@ -239,13 +239,12 @@ def buat_pdf(detail, nomor, tanggal):
     if pn:
         isi.append(_p("Faktor yang memengaruhi nilai rumah", "h2"))
         isi.append(_p(
-            f"Model: {pn['sumber']['penulis']}, <i>{pn['sumber']['judul']}</i>, {pn['sumber']['terbitan']}. "
-            f"Kelengkapan data {pn['kelengkapan']['terisi']}/{pn['kelengkapan']['total']} faktor. {pn['cakupan']}", "isi"))
+            f"HomeWise Value Engine. Kelengkapan data {pn['kelengkapan']['terisi']}/{pn['kelengkapan']['total']} faktor. {pn['cakupan']}", "isi"))
         isi.append(Spacer(1, 4))
         isi.append(_tabel(
-            [["Peringkat", "Kelompok", "Eigenvalue", "Pengaruh pada nilai model"]]
-            + [[str(k["peringkat"]), k["label"], f"{k['eigen']:.3f}".replace(".", ","),
-                ("+" if k["kontribusi"] >= 0 else "−") + rupiah(abs(k["kontribusi"]))] for k in pn["kelompok"]],
+            [["Peringkat", "Kelompok", "Bobot pengaruh", "Faktor berpengaruh"]]
+            + [[str(k["peringkat"]), k["label"], f"{k['bobot_relatif']:.0f}%",
+                str(sum(1 for f in k["faktor"] if f["aktif"]))] for k in pn["kelompok"]],
             [22 * mm, 60 * mm, 28 * mm, 60 * mm], rata_kanan=(2, 3),
         ))
         status = {"ya": "Ya", "tidak": "Tidak", "belum_diketahui": "Belum diketahui"}
@@ -256,9 +255,8 @@ def buat_pdf(detail, nomor, tanggal):
                for s_ in pn["sorotan"]],
             [52 * mm, 24 * mm, 26 * mm, 68 * mm],
         ))
-        isi.append(_p(
-            f"Nilai model (harga 2013): {rupiah(pn['nilai_model_2013'])}, rentang ±5,06%. Dipakai untuk melihat arah "
-            "pengaruh faktor, bukan sebagai harga pasar hari ini.", "kecil"))
+        isi.append(_p("Penggerak nilai: " + ", ".join(
+            f"{f['label']} ({'+' if f['persen'] > 0 else ''}{f['persen']}%)" for f in (pn["positif"][:3] + pn["negatif"][:2])), "kecil"))
 
     if detail["rekomendasi"]:
         isi.append(_p("Rekomendasi pemeriksaan lanjutan", "h2"))

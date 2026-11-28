@@ -11,6 +11,7 @@ const MENU = [
   { ke: "/#tujuan", label: "Analisis per tujuan" },
   { ke: "/peta-harga", label: "Peta Harga Tanah" },
   { ke: "/harga", label: "Harga" },
+  { ke: "/#tim", label: "Tentang" },
 ];
 
 export function NavbarPublik() {

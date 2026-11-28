@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   LuArrowRight,
   LuBriefcase,
   LuBuilding2,
   LuCamera,
+  LuChevronRight,
   LuCircleCheck,
   LuFileText,
   LuHouse,
@@ -16,7 +17,7 @@ import {
   LuStore,
   LuUtensils,
 } from "react-icons/lu";
-import { IlustrasiBiaya, IlustrasiLaporan, IlustrasiPemindai, IlustrasiPeta, IlustrasiRumah } from "../../komponen/ilustrasi/Ilustrasi";
+import { IlustrasiBiaya, IlustrasiPemindai, IlustrasiPeta, IlustrasiRumah } from "../../komponen/ilustrasi/Ilustrasi";
 import { TataLetakPublik } from "../../komponen/tata-letak/Publik";
 import { BatangSkor, CincinSkor, GambarDenganCadangan, LencanaLevel, Segmen, Tombol } from "../../komponen/ui";
 import { GAMBAR } from "../../data/gambar";
@@ -25,6 +26,8 @@ import { jarak } from "../../lib/format";
 import { cariAlamat, LOKASI_CONTOH } from "../../lib/geokode";
 import { useJudul } from "../../lib/hooks";
 import { useKonfigurasi } from "../../lib/konfigurasi";
+import { KURANGI_GERAK, Muncul, useMiring, useTerlihat } from "../../lib/gerak";
+import { Maskot } from "../../komponen/Maskot";
 
 const CONTOH_HASIL = {
   skor_total: 84,
@@ -230,20 +233,26 @@ function Fitur() {
   return (
     <section className="bagian" id="fitur">
       <div className="wadah">
-        <div className="bagian__kepala">
-          <h2>Empat analisis yang biasanya Anda cari di tempat berbeda</h2>
-          <p className="teks-redup">Setiap angka di HomeWise punya sumber dan metode. AI menjelaskan temuannya, bukan mengarang data.</p>
+        <div className="kepala-maskot">
+          <Muncul className="bagian__kepala">
+            <span className="eyebrow-gradasi">Fitur</span>
+            <h2>Empat analisis yang biasanya Anda cari di tempat berbeda</h2>
+            <p className="teks-redup">Setiap angka di HomeWise punya sumber dan metode. AI menjelaskan temuannya, bukan mengarang data.</p>
+          </Muncul>
+          <Muncul jeda={0.1} className="kepala-maskot__gambar">
+            <Maskot pose="mencari" ukuran={130} />
+          </Muncul>
         </div>
         <div className="bento">
-          {FITUR.map((f) => (
-            <article key={f.judul} className={`bento__item ${f.besar ? "bento__item--besar" : ""}`}>
+          {FITUR.map((f, i) => (
+            <Muncul as="article" jeda={i * 0.08} key={f.judul} className={`bento__item kartu-angkat ${f.besar ? "bento__item--besar" : ""}`}>
               <div className="bento__ikon">
                 <f.ikon aria-hidden="true" />
               </div>
               <h3>{f.judul}</h3>
               <p className="teks-redup">{f.teks}</p>
               {f.ilustrasi && <f.ilustrasi className="bento__ilustrasi" />}
-            </article>
+            </Muncul>
           ))}
         </div>
       </div>
@@ -263,7 +272,7 @@ function AnalisisTujuan() {
   return (
     <section className="bagian bagian--biru" id="tujuan">
       <div className="wadah tujuan">
-        <div className="tujuan__teks">
+        <Muncul className="tujuan__teks">
           <h2>Rumah keluarga dan restoran tidak dinilai dengan ukuran yang sama</h2>
           <p>
             Pilih tujuan pembelian, HomeWise menyesuaikan bobot setiap indikator. Lokasi yang ideal untuk keluarga belum tentu ramai untuk kafe.
@@ -274,8 +283,9 @@ function AnalisisTujuan() {
             nilai={aktif}
             onUbah={setAktif}
           />
-        </div>
-        <div className="tujuan__panel">
+        </Muncul>
+        <Muncul jeda={0.1} className="tujuan__panel">
+          <Maskot pose="ide" ukuran={92} className="tujuan__maskot" />
           <p className="tebal">{terpilih?.label}</p>
           <p className="teks-kecil teks-redup" style={{ marginBottom: 20 }}>
             {terpilih?.deskripsi}
@@ -285,35 +295,162 @@ function AnalisisTujuan() {
               <BatangSkor key={kode} label={indikator[kode]} skor={nilai * 100} keterangan="% bobot" warna="var(--gradasi-merek)" />
             ))}
           </div>
-        </div>
+        </Muncul>
       </div>
     </section>
   );
 }
 
 const LANGKAH = [
-  { judul: "Cek lokasi dari rumah", teks: "Tempel alamat dari iklan. Risiko bencana, fasilitas, dan skor kelayakan keluar gratis untuk menyaring kandidat." },
-  { judul: "Survei dengan panduan foto", teks: "Datang ke properti dan buka mode survei di HP. Anda yang memotret, jadi kerusakan tidak disembunyikan." },
-  { judul: "Lihat kerusakan & biaya", teks: "AI menandai kerusakan, lalu HomeWise menghitung prioritas perbaikan, material, dan total investasi." },
-  { judul: "Pilih rumah & hitung KPR", teks: "Tandai kandidat terbaik, atur DP dan tenor, lalu lihat angsuran termasuk opsi kebutuhan renovasi." },
+  { aset: "alur1", judul: "Property Discovery", teks: "Masukkan alamat, koordinat, atau tautan iklan properti." },
+  { aset: "alur2", judul: "Quick Location Check", teks: "Risiko lingkungan, akses, fasilitas, dan karakter kawasan dalam hitungan detik." },
+  { aset: "alur3", judul: "Pilih Tujuan", teks: "Rumah tinggal, investasi, restoran, kantor, atau ruko. Bobot penilaian ikut menyesuaikan." },
+  { aset: "alur4", judul: "Kelayakan Lokasi", teks: "Ringkasan kelayakan awal, risiko, dan data yang perlu dicek saat survei." },
+  { aset: "alur5", judul: "Analisis Bangunan AI", teks: "Unggah foto survei untuk mendeteksi indikasi kerusakan visual." },
+  { aset: "alur9", judul: "Estimasi Renovasi", teks: "Kebutuhan pekerjaan, material, dan biaya dari temuan visual, siap untuk simulasi KPR." },
+  { aset: "alur8", judul: "Total Investasi", teks: "Harga penawaran ditambah biaya renovasi dan transaksi dalam satu angka." },
+  { aset: "alur7", judul: "Laporan Terpadu", teks: "Laporan PDF dengan rekomendasi pemeriksaan lanjutan." },
+  { aset: "alur6", judul: "Keputusan Akhir", teks: "Bandingkan, jadwalkan inspeksi, negosiasi, atau cari alternatif." },
 ];
 
-function CaraKerja() {
+function KartuLangkah({ l, i, aktif, onPilih }) {
+  const ref = useMiring(6);
   return (
-    <section className="bagian" id="cara-kerja">
+    <li
+      ref={ref}
+      className={`jalur__kartu ${aktif ? "jalur__kartu--aktif" : ""}`}
+      data-posisi={i}
+      onPointerEnter={() => onPilih(i)}
+      onFocus={() => onPilih(i)}
+      tabIndex={0}
+    >
+      <span className="jalur__nomor">{String(i + 1).padStart(2, "0")}</span>
+      <h3>{l.judul}</h3>
+      <div className="jalur__aset">
+        <span className="jalur__cahaya" aria-hidden="true" />
+        <img
+          src={`/aset/alur/${l.aset}-220.webp`}
+          srcSet={`/aset/alur/${l.aset}-220.webp 220w, /aset/alur/${l.aset}-440.webp 440w`}
+          sizes="160px"
+          width="160"
+          height="160"
+          alt=""
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+      <p>{l.teks}</p>
+      <span className="jalur__panah" aria-hidden="true">
+        <LuChevronRight />
+      </span>
+    </li>
+  );
+}
+
+function CaraKerja() {
+  const [ref, terlihat] = useTerlihat();
+  const [aktif, setAktif] = useState(0);
+  const [jeda, setJeda] = useState(false);
+
+  useEffect(() => {
+    if (!terlihat || jeda || KURANGI_GERAK) return undefined;
+    const id = setInterval(() => setAktif((a) => (a + 1) % LANGKAH.length), 2600);
+    return () => clearInterval(id);
+  }, [terlihat, jeda]);
+
+  return (
+    <section className="bagian cara-kerja" id="cara-kerja">
+      <div className="cara-kerja__latar" aria-hidden="true" />
       <div className="wadah">
-        <div className="bagian__kepala">
-          <h2>Dari iklan di media sosial ke harga yang pantas ditawar</h2>
+        <Muncul className="bagian__kepala bagian__kepala--tengah">
+          <span className="eyebrow-gradasi">Cara kerja</span>
+          <h2>Alur penggunaan HomeWise</h2>
+          <p className="teks-redup">Sembilan langkah dari iklan properti sampai keputusan akhir. Howy menemani di setiap tahap.</p>
+        </Muncul>
+
+        <div className="jalur__progres" aria-hidden="true">
+          <span style={{ width: `${((aktif + 1) / LANGKAH.length) * 100}%` }} />
         </div>
-        <ol className="alur">
+
+        <ol
+          ref={ref}
+          className={`jalur ${terlihat ? "jalur--terlihat" : ""}`}
+          onPointerEnter={() => setJeda(true)}
+          onPointerLeave={() => setJeda(false)}
+          aria-label="Alur penggunaan HomeWise"
+        >
           {LANGKAH.map((l, i) => (
-            <li key={l.judul} className="alur__item">
-              <span className="alur__nomor">{i + 1}</span>
-              <h3>{l.judul}</h3>
-              <p className="teks-redup teks-kecil">{l.teks}</p>
-            </li>
+            <KartuLangkah key={l.judul} l={l} i={i} aktif={i === aktif} onPilih={setAktif} />
           ))}
+          <li className="jalur__mulai" aria-hidden={false}>
+            <Maskot pose="menyapa" ukuran={120} />
+            <strong>Siap mulai?</strong>
+            <span className="teks-kecil">Cek lokasi pertama Anda gratis.</span>
+            <Tombol ke="/daftar" ukuran="kecil" ikonKanan={LuArrowRight}>
+              Mulai sekarang
+            </Tombol>
+          </li>
         </ol>
+      </div>
+    </section>
+  );
+}
+
+const TIM = [
+  { nama: "Adika", foto: "adika", peran: "CEO", lengkap: "Chief Executive Officer", pemimpin: true },
+  { nama: "Divandra", foto: "divandra", peran: "CPO", lengkap: "Chief Product Officer" },
+  { nama: "Disa", foto: "disa", peran: "CMO", lengkap: "Chief Marketing Officer" },
+  { nama: "Candra", foto: "candra", peran: "CTO", lengkap: "Chief Technology Officer" },
+  { nama: "Gustu", foto: "gustu", peran: "COO", lengkap: "Chief Operating Officer" },
+];
+
+function KartuTim({ t, i }) {
+  const ref = useMiring(10);
+  return (
+    <Muncul as="li" jeda={i * 0.08} className="tim__kartu-wadah">
+      <div ref={ref} className={`tim__kartu ${t.pemimpin ? "tim__kartu--pemimpin" : ""}`}>
+        {t.pemimpin && <span className="tim__pemimpin">Leader</span>}
+        <div className="tim__foto">
+          <img
+            src={`/aset/tim/${t.foto}-320.webp`}
+            srcSet={`/aset/tim/${t.foto}-320.webp 320w, /aset/tim/${t.foto}-640.webp 640w`}
+            sizes="180px"
+            width="180"
+            height="180"
+            alt={`${t.nama}, ${t.lengkap} HomeWise`}
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+        <strong className="tim__nama">{t.nama}</strong>
+        <span className="tim__peran">{t.peran}</span>
+        <span className="tim__lengkap">{t.lengkap}</span>
+      </div>
+    </Muncul>
+  );
+}
+
+function Tim() {
+  return (
+    <section className="bagian tim" id="tim">
+      <div className="wadah">
+        <div className="tim__kepala">
+          <Muncul className="bagian__kepala">
+            <span className="eyebrow-gradasi">Tentang kami</span>
+            <h2>Tim di balik HomeWise</h2>
+            <p className="teks-redup">
+              Tim Rumaholic membangun HomeWise agar setiap keluarga Indonesia bisa membeli rumah dengan data, bukan tebakan.
+            </p>
+          </Muncul>
+          <Muncul jeda={0.15} className="tim__maskot">
+            <Maskot pose="onboarding" ukuran={150} />
+          </Muncul>
+        </div>
+        <ul className="tim__daftar">
+          {TIM.map((t, i) => (
+            <KartuTim key={t.nama} t={t} i={i} />
+          ))}
+        </ul>
       </div>
     </section>
   );
@@ -372,8 +509,8 @@ function Segmen3() {
           <h2>Dibuat untuk keputusan bernilai besar</h2>
         </div>
         <div className="kisi-3">
-          {SEGMEN.map((s) => (
-            <article key={s.judul} className="segmen-kartu">
+          {SEGMEN.map((s, i) => (
+            <Muncul as="article" jeda={i * 0.1} key={s.judul} className="segmen-kartu kartu-angkat">
               <div className="segmen-kartu__gambar" style={{ background: s.latar }}>
                 <GambarDenganCadangan
                   src={s.gambar.src}
@@ -385,7 +522,7 @@ function Segmen3() {
                 <h3>{s.judul}</h3>
                 <p className="teks-redup teks-kecil">{s.teks}</p>
               </div>
-            </article>
+            </Muncul>
           ))}
         </div>
       </div>
@@ -406,7 +543,10 @@ function Laporan() {
   return (
     <section className="bagian">
       <div className="wadah laporan-promo">
-        <IlustrasiLaporan className="laporan-promo__ilustrasi" />
+        <Muncul className="laporan-promo__visual">
+          <span className="laporan-promo__lingkar" aria-hidden="true" />
+          <img src="/aset/alur/alur7-440.webp" width="320" height="320" alt="Howy membawa laporan HomeWise" loading="lazy" decoding="async" className="maskot--melayang" />
+        </Muncul>
         <div>
           <h2>Satu laporan untuk dibawa ke meja negosiasi</h2>
           <p className="teks-redup" style={{ marginTop: 12 }}>
@@ -446,7 +586,7 @@ function Banner() {
             Buat akun gratis
           </Tombol>
         </div>
-        <IlustrasiRumah className="banner__rumah" />
+        <Maskot pose="sukses" ukuran={240} className="banner__rumah banner__maskot" />
         <div className="banner__catatan">
           <LuShieldCheck aria-hidden="true" />
           HomeWise bukan marketplace dan bukan pengganti inspeksi profesional.
@@ -476,6 +616,7 @@ export default function Beranda() {
       <Pembiayaan />
       <Segmen3 />
       <Laporan />
+      <Tim />
       <Banner />
     </TataLetakPublik>
   );

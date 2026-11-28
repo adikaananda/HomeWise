@@ -1,3 +1,4 @@
+import { MaskotPesan } from "../../../komponen/Maskot";
 import { useState } from "react";
 import { LuBadgeCheck, LuCamera, LuImagePlus, LuScanSearch, LuTrash2 } from "react-icons/lu";
 import { LencanaSumberFoto, ModalUnggahFoto, ProgresSurvei } from "../../../komponen/Survei";
@@ -140,12 +141,15 @@ export function TabBangunan({ detail, setDetail, muatUlang }) {
   const beriTahu = useNotifikasi();
   const [modal, setModal] = useState(false);
   const [menganalisis, setMenganalisis] = useState(false);
+  const [baruSelesai, setBaruSelesai] = useState(false);
   const { properti, foto, bangunan, akses_premium: premium, survei } = detail;
 
   const analisis = async () => {
     setMenganalisis(true);
     try {
       setDetail(await api.post(`/properti/${properti.id}/analisis-bangunan`));
+      setBaruSelesai(true);
+      setTimeout(() => setBaruSelesai(false), 6000);
       beriTahu("Analisis selesai. Lihat juga rincian biaya dan material di tab Biaya.");
     } catch (e) {
       beriTahu(e.message, "galat");
@@ -159,6 +163,18 @@ export function TabBangunan({ detail, setDetail, muatUlang }) {
   return (
     <div className="tumpuk" style={{ gap: 20 }}>
       <KartuSurvei detail={detail} onTambah={() => setModal(true)} />
+
+      {menganalisis && (
+        <MaskotPesan pose="menganalisis" judul="Howy sedang memeriksa foto bangunan…" className="maskot-pesan--proses">
+          AI menandai retak, rembesan, cat mengelupas, dan kerusakan plafon, lalu menghitung prioritas perbaikannya.
+          <span className="progres-tak-tentu" aria-hidden="true" />
+        </MaskotPesan>
+      )}
+      {baruSelesai && !menganalisis && bangunan && (
+        <MaskotPesan pose="sukses" judul="Analisis selesai!" className="maskot-pesan--sukses">
+          {bangunan.temuan?.length ?? 0} indikasi kerusakan ditemukan. Lihat rincian biaya dan material di tab Biaya & investasi.
+        </MaskotPesan>
+      )}
 
       {foto.length > 0 ? (
         <Kartu
@@ -184,7 +200,7 @@ export function TabBangunan({ detail, setDetail, muatUlang }) {
         </Kartu>
       ) : (
         <Kartu>
-          <Kosong ikon={LuCamera} judul="Belum ada foto bangunan">
+          <Kosong ikon={LuCamera} maskot="renovasi" judul="Belum ada foto bangunan">
             Saat datang survei, buka halaman ini di HP lalu tekan Mulai mode survei. Foto langsung tersimpan dan siap dianalisis.
           </Kosong>
         </Kartu>

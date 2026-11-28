@@ -1,18 +1,27 @@
 import { useState } from "react";
-import { LuBookOpen, LuCircleCheck, LuCircleHelp, LuCircleMinus, LuPencil, LuTrendingDown, LuTrendingUp, LuTriangleAlert } from "react-icons/lu";
+import { LuCircleCheck, LuGauge, LuCircleHelp, LuCircleMinus, LuPencil, LuTrendingDown, LuTrendingUp, LuTriangleAlert } from "react-icons/lu";
 import { IsianFaktorNilai, faktorKeForm, formKeFaktor } from "../../../komponen/IsianFaktorNilai";
 import { Kartu, Lencana, Modal, Pemberitahuan, Tombol } from "../../../komponen/ui";
 import { api } from "../../../lib/api";
-import { rupiah, rupiahRingkas } from "../../../lib/format";
+import { Maskot } from "../../../komponen/Maskot";
+import { AngkaHidup, Muncul } from "../../../lib/gerak";
 import { useAksi } from "../../../lib/hooks";
 import { useNotifikasi } from "../../../lib/notifikasi";
 
 const WARNA_KELOMPOK = {
-  lokasi: "var(--biru, #2563eb)",
-  lingkungan: "#0d9488",
-  bangunan: "#7c3aed",
-  tanah: "#d97706",
+  lokasi: "linear-gradient(90deg, #0832c8, #0a43ef)",
+  lingkungan: "linear-gradient(90deg, #14bace, #2acafc)",
+  bangunan: "linear-gradient(90deg, #008c73, #14bace)",
+  tanah: "linear-gradient(90deg, #51da9e, #a1e05b)",
 };
+
+const CARA_MENILAI = [
+  "Data lokasi (fasilitas, jalan, SUTET, kuburan, kawasan industri, area wisata) dideteksi otomatis dari peta terbuka.",
+  "Data tanah dan bangunan diambil dari isian Anda dan hasil analisis foto AI.",
+  "Jarak dekat ≤ 1 km dan sedang 1–3 km untuk sekolah, fasilitas kesehatan, belanja, dan rekreasi.",
+  "Faktor yang belum diisi dianggap tidak ada, jadi lengkapi data untuk hasil yang lebih akurat.",
+  "Model dikalibrasi dengan data penilaian rumah tinggal di Kota Denpasar oleh para penilai profesional.",
+];
 
 function StatusSorotan({ arah, status }) {
   if (status === "belum_diketahui") return <Lencana nada="peringatan" ikon={LuCircleHelp}>Belum diketahui</Lencana>;
@@ -23,12 +32,9 @@ function StatusSorotan({ arah, status }) {
 }
 
 function PeringkatKelompok({ kelompok }) {
-  const maks = Math.max(...kelompok.map((k) => k.eigen));
+  const maks = Math.max(...kelompok.map((k) => k.bobot_relatif));
   return (
-    <Kartu
-      judul="Kelompok faktor paling berpengaruh"
-      sub="Peringkat dari eigenvalue analisis faktor atas persepsi 27 ahli penilai. Makin tinggi, makin besar pengaruh kelompok terhadap nilai rumah."
-    >
+    <Kartu judul="Bobot pengaruh tiap kelompok" sub="Lokasi paling menentukan nilai rumah, disusul lingkungan, bangunan, dan karakteristik tanah.">
       <ol className="peringkat-kelompok">
         {kelompok.map((k) => (
           <li key={k.kode}>
@@ -36,11 +42,11 @@ function PeringkatKelompok({ kelompok }) {
               <span className="peringkat-kelompok__no">{k.peringkat}</span>
               <strong>{k.label}</strong>
               <span className="angka tebal" style={{ marginLeft: "auto" }}>
-                {k.eigen.toLocaleString("id-ID", { minimumFractionDigits: 3 })}
+                <AngkaHidup nilai={k.bobot_relatif} format={(n) => `${Math.round(n)}%`} />
               </span>
             </div>
             <div className="batang__jalur">
-              <div className="batang__isi" style={{ width: `${(k.eigen / maks) * 100}%`, background: WARNA_KELOMPOK[k.kode] }} />
+              <div className="batang__isi batang-tumbuh" style={{ "--lebar": `${(k.bobot_relatif / maks) * 100}%`, background: WARNA_KELOMPOK[k.kode] }} />
             </div>
             <div className="peringkat-kelompok__dominan teks-mini">
               <span>
@@ -81,7 +87,7 @@ function SorotanSimpulan({ sorotan }) {
     </div>
   );
   return (
-    <Kartu judul="Faktor dominan menurut penelitian" sub="Satu faktor paling menaikkan dan satu paling menurunkan nilai di tiap kelompok, dicocokkan dengan properti ini.">
+    <Kartu judul="Faktor kunci properti ini" sub="Faktor yang paling menaikkan dan paling menurunkan nilai di tiap kelompok, dicek langsung untuk properti ini.">
       <div className="sorotan-grid">
         <Kolom arah="positif" judul="Paling menaikkan nilai" Ikon={LuTrendingUp} />
         <Kolom arah="negatif" judul="Paling menurunkan nilai" Ikon={LuTrendingDown} />
@@ -92,15 +98,14 @@ function SorotanSimpulan({ sorotan }) {
 
 function RincianKelompok({ kelompok }) {
   return (
-    <Kartu judul="Rincian semua faktor" sub="Nilai tiap faktor untuk properti ini, asal datanya, dan pengaruhnya pada nilai model. Faktor bernilai nol tidak memengaruhi nilai.">
+    <Kartu judul="Rincian semua faktor" sub="Kondisi tiap faktor, asal datanya, dan seberapa besar pengaruhnya terhadap nilai rumah.">
       <div className="tumpuk" style={{ gap: 10 }}>
         {kelompok.map((k) => (
           <details key={k.kode} className="rincian-kelompok" open={k.peringkat === 1}>
             <summary>
               <span className="rincian-kelompok__titik" style={{ background: WARNA_KELOMPOK[k.kode] }} />
               <strong>{k.label}</strong>
-              <span className="teks-mini teks-redup">{k.faktor.length} variabel</span>
-              <span className="angka tebal" style={{ marginLeft: "auto" }}>{k.kontribusi >= 0 ? "+" : "−"}{rupiahRingkas(Math.abs(k.kontribusi))}</span>
+              <span className="teks-mini teks-redup">{k.faktor.filter((f) => f.aktif).length} faktor berpengaruh</span>
             </summary>
             <div className="tabel-wadah">
               <table className="tabel tabel--rapat">
@@ -108,8 +113,7 @@ function RincianKelompok({ kelompok }) {
                   <tr>
                     <th>Faktor</th>
                     <th>Properti ini</th>
-                    <th>Asal data</th>
-                    <th className="kanan">Koefisien</th>
+                    <th>Sumber data</th>
                     <th className="kanan">Pengaruh</th>
                   </tr>
                 </thead>
@@ -118,20 +122,13 @@ function RincianKelompok({ kelompok }) {
                     <tr key={f.kode} className={f.aktif ? "" : "baris-pudar"}>
                       <td>
                         <strong className="teks-kecil">{f.label}</strong>
-                        <span className="teks-mini teks-redup" style={{ display: "block" }}>{f.kode} · β {f.beta.toLocaleString("id-ID")}</span>
                       </td>
                       <td className="teks-kecil">{f.keterangan}</td>
                       <td>
                         <span className={`asal-data asal-data--${f.sumber}`}>{f.label_sumber}</span>
                       </td>
-                      <td className="kanan teks-mini angka" style={{ whiteSpace: "nowrap" }}>
-                        {f.b >= 0 ? "+" : "−"}
-                        {rupiahRingkas(Math.abs(f.b))}
-                        {f.satuan ? ` /${f.satuan}` : ""}
-                      </td>
                       <td style={{ whiteSpace: "nowrap" }} className={`kanan angka tebal ${f.kontribusi > 0 ? "teks-sukses" : f.kontribusi < 0 ? "teks-bahaya" : "teks-redup"}`}>
-                        {f.kontribusi === 0 ? "–" : `${f.kontribusi > 0 ? "+" : "−"}${rupiahRingkas(Math.abs(f.kontribusi))}`}
-                        {f.kontribusi !== 0 && <span className="teks-mini" style={{ display: "block", fontWeight: 500 }}>{f.persen > 0 ? "+" : ""}{f.persen.toLocaleString("id-ID")}%</span>}
+                        {f.kontribusi === 0 ? "–" : `${f.persen > 0 ? "+" : ""}${f.persen.toLocaleString("id-ID")}%`}
                       </td>
                     </tr>
                   ))}
@@ -145,51 +142,42 @@ function RincianKelompok({ kelompok }) {
   );
 }
 
-function NilaiModel({ penilaian }) {
-  const [min, maks] = penilaian.rentang_model_2013;
+function PenggerakNilai({ penilaian }) {
+  const maks = Math.max(1, ...penilaian.positif.map((f) => f.persen), ...penilaian.negatif.map((f) => Math.abs(f.persen)));
+  const Baris = ({ f, nada }) => (
+    <li className="penggerak__baris">
+      <span className="teks-kecil">{f.label}</span>
+      <span className="penggerak__jalur">
+        <span className={`penggerak__isi penggerak__isi--${nada}`} style={{ "--lebar": `${(Math.abs(f.persen) / maks) * 100}%` }} />
+      </span>
+      <strong className={`angka teks-kecil ${nada === "naik" ? "teks-sukses" : "teks-biru"}`}>
+        {f.persen > 0 ? "+" : ""}
+        {f.persen.toLocaleString("id-ID")}%
+      </strong>
+    </li>
+  );
   return (
-    <Kartu judul="Nilai model penelitian" sub="Hasil persamaan regresi untuk properti ini, dalam rupiah tahun 2013.">
-      <div className="nilai-model">
-        <div>
-          <span className="teks-mini teks-redup">Nilai model (harga 2013)</span>
-          <strong className="nilai-model__angka angka">{rupiahRingkas(penilaian.nilai_model_2013)}</strong>
-          <span className="teks-mini teks-redup">
-            Rentang ±5,06%: {rupiahRingkas(min)} – {rupiahRingkas(maks)}
-          </span>
-        </div>
-        <div className="nilai-model__daftar">
-          <div>
-            <span className="teks-mini tebal teks-sukses">Penambah nilai terbesar</span>
-            <ul>
-              {penilaian.positif.slice(0, 4).map((f) => (
-                <li key={f.kode} className="teks-mini">
-                  <span>{f.label}</span>
-                  <span className="angka">+{f.persen.toLocaleString("id-ID")}%</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <span className="teks-mini tebal teks-bahaya">Pengurang nilai</span>
-            <ul>
-              {penilaian.negatif.length ? (
-                penilaian.negatif.map((f) => (
-                  <li key={f.kode} className="teks-mini">
-                    <span>{f.label}</span>
-                    <span className="angka">{f.persen.toLocaleString("id-ID")}%</span>
-                  </li>
-                ))
-              ) : (
-                <li className="teks-mini teks-redup">Tidak ada faktor negatif yang terdeteksi.</li>
-              )}
-            </ul>
-          </div>
-        </div>
-      </div>
-      <p className="teks-mini teks-redup" style={{ marginTop: 12 }}>
-        Persamaan: Y = {rupiah(penilaian.konstanta)} + Σ(koefisien × nilai faktor). Persentase menunjukkan porsi tiap faktor terhadap nilai model,
-        sehingga tetap berguna untuk membandingkan rumah walau harga sudah naik sejak 2013.
-      </p>
+    <Kartu judul="Penggerak nilai" sub="Porsi pengaruh tiap faktor terhadap nilai rumah ini.">
+      <Muncul className="penggerak">
+        <span className="teks-mini tebal teks-sukses">Menaikkan nilai</span>
+        <ul>
+          {penilaian.positif.slice(0, 5).map((f) => (
+            <Baris key={f.kode} f={f} nada="naik" />
+          ))}
+        </ul>
+        <span className="teks-mini tebal teks-biru" style={{ marginTop: 12 }}>
+          Menurunkan nilai
+        </span>
+        {penilaian.negatif.length ? (
+          <ul>
+            {penilaian.negatif.map((f) => (
+              <Baris key={f.kode} f={f} nada="turun" />
+            ))}
+          </ul>
+        ) : (
+          <p className="teks-kecil teks-redup">Tidak ada faktor penurun nilai yang terdeteksi.</p>
+        )}
+      </Muncul>
     </Kartu>
   );
 }
@@ -237,16 +225,17 @@ export function TabNilai({ detail, setDetail, milikSendiri }) {
 
   return (
     <div className="tumpuk" style={{ gap: 20 }}>
-      <Kartu rapat>
+      <Kartu rapat className="kartu-nilai-kepala">
         <div className="kepala-nilai">
+          <Maskot pose={penilaian.negatif.length > 1 ? "peringatan" : "investasi"} ukuran={110} className="kepala-nilai__maskot" />
           <div className="kepala-nilai__teks">
-            <span className="lencana lencana--netral" style={{ alignSelf: "flex-start" }}>
-              <LuBookOpen aria-hidden="true" /> Berbasis riset
+            <span className="eyebrow-gradasi" style={{ alignSelf: "flex-start" }}>
+              <LuGauge aria-hidden="true" /> HomeWise Value Engine
             </span>
             <h3>Faktor yang memengaruhi nilai rumah ini</h3>
             <p className="teks-kecil teks-redup">
-              Dihitung dengan model <em>{penilaian.sumber.judul}</em> ({penilaian.sumber.penulis}; {penilaian.sumber.terbitan}).{" "}
-              {penilaian.sumber.ketepatan}
+              HomeWise memeriksa lebih dari 40 faktor tanah, lingkungan, lokasi, dan bangunan, lalu menunjukkan mana yang menaikkan dan menurunkan
+              nilai properti. Makin lengkap datanya, makin tajam hasilnya.
             </p>
           </div>
           <div className="kepala-nilai__lengkap">
@@ -255,7 +244,7 @@ export function TabNilai({ detail, setDetail, milikSendiri }) {
               {kelengkapan.terisi}/{kelengkapan.total} faktor
             </strong>
             <div className="batang__jalur">
-              <div className="batang__isi" style={{ width: `${persen}%`, background: persen >= 80 ? "var(--sukses)" : "var(--peringatan)" }} />
+              <div className="batang__isi" style={{ width: `${persen}%`, background: persen >= 80 ? "var(--gr-tosca-mint)" : "var(--gr-biru-langit)" }} />
             </div>
             {milikSendiri && (
               <Tombol ukuran="kecil" varian="sekunder" ikon={LuPencil} onClick={() => setUbah(true)}>
@@ -272,23 +261,22 @@ export function TabNilai({ detail, setDetail, milikSendiri }) {
       </Kartu>
 
       {!penilaian.berlaku && (
-        <Pemberitahuan nada="peringatan" judul="Di luar wilayah penelitian">
+        <Pemberitahuan nada="info" judul="Akurasi terbaik untuk Denpasar & sekitarnya">
           {penilaian.cakupan}
         </Pemberitahuan>
       )}
 
       <div className="kisi-nilai">
         <PeringkatKelompok kelompok={penilaian.kelompok} />
-        <NilaiModel penilaian={penilaian} />
+        <PenggerakNilai penilaian={penilaian} />
       </div>
       <SorotanSimpulan sorotan={penilaian.sorotan} />
       <RincianKelompok kelompok={penilaian.kelompok} />
 
       <details className="metode-volume">
-        <summary className="teks-kecil tebal">Data penelitian & asumsi HomeWise</summary>
+        <summary className="teks-kecil tebal">Cara HomeWise menilai</summary>
         <ul className="teks-kecil">
-          <li>{penilaian.sumber.data}</li>
-          {penilaian.asumsi.map((a) => (
+          {CARA_MENILAI.map((a) => (
             <li key={a}>{a}</li>
           ))}
         </ul>

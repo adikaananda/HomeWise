@@ -392,14 +392,14 @@ def hitung_penilaian(properti, data_lokasi, bangunan):
         {"kelompok": "Lokasi", "arah": "positif", "faktor": "Kawasan permukiman pusat kota", "beta": 0.163, "status": _status(["X21a"]), "keterangan": variabel["X21a"][2]},
         {"kelompok": "Lokasi", "arah": "negatif", "faktor": "Dekat jaringan SUTET", "beta": -0.027, "status": _status(["X18"]), "keterangan": variabel["X18"][2]},
         {"kelompok": "Lingkungan", "arah": "positif", "faktor": "Lebar jalan depan tanah", "beta": 0.086, "status": "ya" if variabel["X10"][0] >= 6 else ("belum_diketahui" if variabel["X10"][1] == "asumsi" else "tidak"),
-         "keterangan": variabel["X10"][2] + " (tiap +1 m menambah ±Rp19,7 jt pada nilai model)"},
+         "keterangan": variabel["X10"][2] + " · makin lebar, makin tinggi nilai"},
         {"kelompok": "Lingkungan", "arah": "negatif", "faktor": "Lingkungan sekitar / jalan kurang baik", "beta": -0.012, "status": _status(["X8a", "X11a"]),
          "keterangan": f"Lingkungan: {variabel['X8a'][2].lower()} · Jalan: {variabel['X11a'][2].lower()}"},
         {"kelompok": "Karakteristik bangunan", "arah": "positif", "faktor": "Luas bangunan", "beta": 0.342, "status": "ya" if variabel["X24"][0] else "belum_diketahui",
-         "keterangan": variabel["X24"][2] + " (tiap m² ±Rp1,65 jt pada nilai model)"},
+         "keterangan": variabel["X24"][2] + " · faktor terkuat di kelompok bangunan"},
         {"kelompok": "Karakteristik bangunan", "arah": "negatif", "faktor": "Kondisi fisik bangunan kurang baik", "beta": -0.087, "status": _status(["X26a"]), "keterangan": variabel["X26a"][2]},
         {"kelompok": "Karakteristik tanah", "arah": "positif", "faktor": "Luas tanah", "beta": 0.388, "status": "ya" if variabel["X1"][0] else "belum_diketahui",
-         "keterangan": variabel["X1"][2] + " (tiap m² ±Rp2,24 jt pada nilai model)"},
+         "keterangan": variabel["X1"][2] + " · faktor terkuat di kelompok tanah"},
         {"kelompok": "Karakteristik tanah", "arah": "negatif", "faktor": "Posisi tanah tusuk sate", "beta": -0.031, "status": _status(["X3a"]), "keterangan": variabel["X3a"][2]},
     ]
 
@@ -416,9 +416,9 @@ def hitung_penilaian(properti, data_lokasi, bangunan):
     return {
         "sumber": SUMBER_PENELITIAN,
         "berlaku": berlaku,
-        "cakupan": ("Properti berada di Kota Denpasar, sesuai wilayah data penelitian." if berlaku else
-                    "Properti di luar Kota Denpasar. Arah pengaruh faktor tetap relevan, tetapi angka rupiah model "
-                    "dibangun dari data Denpasar sehingga hanya dipakai sebagai acuan."),
+        "cakupan": ("Properti berada di Kota Denpasar, wilayah kalibrasi utama model nilai HomeWise." if berlaku else
+                    "Model nilai HomeWise dikalibrasi untuk Kota Denpasar. Di wilayah lain, arah pengaruh tiap faktor tetap "
+                    "berlaku, tetapi besarnya pengaruh dipakai sebagai acuan."),
         "kelompok": kelompok,
         "sorotan": sorotan,
         "positif": [{"kode": f["kode"], "label": f["label"], "kontribusi": f["kontribusi"], "persen": f["persen"]} for f in positif[:6]],

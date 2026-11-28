@@ -263,7 +263,7 @@ function LangkahData({ form, setForm, galat }) {
         <summary>
           <strong className="teks-kecil">Faktor penilaian tanah, lingkungan & bangunan</strong>
           <span className="teks-mini teks-redup">
-            Opsional. Dipakai di tab Faktor nilai berdasarkan riset penilaian rumah tinggal Kota Denpasar (Rijasa dkk., 2014). Bisa dilengkapi nanti.
+            Opsional. Dipakai di tab Faktor nilai untuk menghitung apa saja yang menaikkan dan menurunkan nilai rumah. Bisa dilengkapi nanti.
           </span>
         </summary>
         <IsianFaktorNilai nilai={form.faktor} onUbah={(faktor) => setForm({ ...form, faktor })} ringkas />

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { LuCircleAlert, LuCircleCheck, LuInfo, LuTriangleAlert } from "react-icons/lu";
 import { inisial, nadaLevel } from "../../lib/format";
 import { Tombol } from "./Tombol";
+import { Maskot } from "../Maskot";
 
 export function Kartu({ judul, sub, aksi, rapat, rata, className = "", children, ...sisa }) {
   return (
@@ -49,12 +50,16 @@ export function Pemberitahuan({ nada = "info", judul, children, aksi }) {
   );
 }
 
-export function Kosong({ ikon: Ikon = LuInfo, judul, children, aksi }) {
+export function Kosong({ ikon: Ikon = LuInfo, judul, children, aksi, maskot = "kosong" }) {
   return (
     <div className="kosong">
-      <div className="kosong__ikon">
-        <Ikon aria-hidden="true" />
-      </div>
+      {maskot ? (
+        <Maskot pose={maskot} ukuran={112} className="kosong__maskot" />
+      ) : (
+        <div className="kosong__ikon">
+          <Ikon aria-hidden="true" />
+        </div>
+      )}
       <h3>{judul}</h3>
       {children && <p>{children}</p>}
       {aksi}
@@ -64,7 +69,7 @@ export function Kosong({ ikon: Ikon = LuInfo, judul, children, aksi }) {
 
 export function GalatMuat({ galat, onCobaLagi }) {
   return (
-    <Kosong ikon={LuCircleAlert} judul="Data belum bisa dimuat" aksi={onCobaLagi && <Tombol varian="sekunder" onClick={() => onCobaLagi()}>Muat ulang</Tombol>}>
+    <Kosong ikon={LuCircleAlert} maskot="galat" judul="Data belum bisa dimuat" aksi={onCobaLagi && <Tombol varian="sekunder" onClick={() => onCobaLagi()}>Muat ulang</Tombol>}>
       {galat?.message || "Periksa koneksi Anda lalu coba lagi."}
     </Kosong>
   );
@@ -77,7 +82,10 @@ export function Kerangka({ tinggi = 16, lebar = "100%", style }) {
 export function KerangkaHalaman() {
   return (
     <div className="tumpuk" aria-busy="true" aria-label="Memuat">
-      <Kerangka tinggi={36} lebar="40%" />
+      <div className="baris" style={{ gap: 14 }}>
+        <Maskot pose="menganalisis" ukuran={64} gerak="lompat" prioritas />
+        <Kerangka tinggi={36} lebar="40%" />
+      </div>
       <div className="kisi-3">
         <Kerangka tinggi={120} />
         <Kerangka tinggi={120} />
@@ -106,8 +114,20 @@ export function Avatar({ nama }) {
 }
 
 export function Tab({ daftar, aktif, onUbah, label }) {
+  const wadah = useRef(null);
+  const [garis, setGaris] = useState(null);
+  useLayoutEffect(() => {
+    const ukur = () => {
+      const el = wadah.current?.querySelector('[aria-selected="true"]');
+      if (el) setGaris({ left: el.offsetLeft, width: el.offsetWidth });
+    };
+    ukur();
+    window.addEventListener("resize", ukur);
+    return () => window.removeEventListener("resize", ukur);
+  }, [aktif, daftar.length]);
   return (
-    <div className="tab" role="tablist" aria-label={label}>
+    <div className="tab tab--hidup" role="tablist" aria-label={label} ref={wadah}>
+      {garis && <span className="tab__garis" aria-hidden="true" style={{ transform: `translateX(${garis.left}px)`, width: garis.width }} />}
       {daftar.map(({ kode, label: teks, ikon: Ikon }) => (
         <button key={kode} type="button" role="tab" aria-selected={aktif === kode} onClick={() => onUbah(kode)}>
           {Ikon && <Ikon aria-hidden="true" />}

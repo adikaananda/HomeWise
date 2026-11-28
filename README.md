@@ -576,3 +576,11 @@ Logika ada di `backend/app/layanan/penilaian_nilai.py`, hasilnya dikirim sebagai
   Bisa diisi di form properti baru (bagian opsional) atau tombol **Lengkapi faktor**. `PATCH /api/properti/<id>` menggabungkan spesifikasi; kirim `null` untuk mengosongkan.
 - Batas jarak dekat ≤ 1 km / sedang 1–3 km ditetapkan HomeWise karena makalah tidak mencantumkannya. Properti di luar Denpasar tetap dihitung, dengan peringatan cakupan.
 - Properti demo ke-4 (**Rumah Hook Renon Denpasar**) sudah berisi faktor lengkap untuk demo.
+
+## UI imersif (v2)
+
+- **Design system**: `frontend/src/gaya/imersif.css` berisi gradien palet HomeWise (#0832C8, #0A43EF, #2ACAFC, #14BACE, #008C73, #51DA9E, #A6EFB6, #A1E05B) dan semua animasi.
+- **Gerak**: `frontend/src/lib/gerak.jsx` (scroll reveal, counter, tilt 3D) tanpa library tambahan dan mematuhi `prefers-reduced-motion`.
+- **Maskot Howy**: `frontend/src/komponen/Maskot.jsx` memetakan keadaan (memuat, menganalisis, risiko rendah/sedang/tinggi, sukses, kosong, galat, investasi, renovasi, onboarding) ke aset `public/aset/maskot/howyN-{240,480}.webp`. Gambar dimuat lazy.
+- **Aset**: `public/aset/alur` (9 langkah cara kerja), `public/aset/tim` (foto tim). Semua dikonversi ke WebP, dari 24 MB menjadi ±1,2 MB.
+- **Dasbor**: `GET /api/dasbor?fokus=<id>` mengembalikan `fokus` (ringkasan lokasi, risiko, kondisi, biaya, investasi, faktor nilai, rekomendasi) dan `peta`.

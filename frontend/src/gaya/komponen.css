@@ -434,7 +434,7 @@ select.kontrol {
 }
 
 .cincin__isi {
-  transition: stroke-dashoffset 900ms var(--halus);
+  transition: stroke-dashoffset 1200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .cincin__label {

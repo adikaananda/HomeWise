@@ -5,13 +5,13 @@ const UBIN = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const ATRIBUSI = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 export const WARNA_INDIKATOR = {
-  kesehatan: "#e5484d",
-  pendidikan: "#7a5af8",
-  ekonomi: "#d99a00",
+  kesehatan: "#0a43ef",
+  pendidikan: "#14bace",
+  ekonomi: "#51da9e",
   transportasi: "#008c73",
 };
 
-const WARNA_RISIKO = { rendah: "#51da9e", sedang: "#f5b400", tinggi: "#e5484d" };
+const WARNA_RISIKO = { rendah: "#a6efb6", sedang: "#2acafc", tinggi: "#0832c8" };
 
 const DAFTAR_KOSONG = [];
 const OBJEK_KOSONG = {};

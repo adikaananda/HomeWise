@@ -1,6 +1,6 @@
 import { Isian, Pilihan } from "./ui";
 
-// Isian faktor penilaian berdasarkan Rijasa, Sukrawa & Nadiasa (2014), Jurnal Spektran 2(2).
+// Isian faktor penilaian untuk HomeWise Value Engine.
 // Nilai kosong ("") berarti belum diisi: backend memakai deteksi otomatis atau menganggapnya tidak ada.
 
 const YA_TIDAK = [

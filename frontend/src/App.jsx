@@ -58,10 +58,17 @@ export default function App() {
     const parameter = cocokkan(rute.pola, jalur);
     if (!parameter) continue;
     const Halaman = rute.halaman;
-    if (!rute.peran) return <Halaman {...parameter} />;
+    if (!rute.peran)
+      return (
+        <div key={rute.pola} className="halaman-masuk">
+          <Halaman {...parameter} />
+        </div>
+      );
     return (
       <CangkangAplikasi peran={rute.peran} polos={rute.polos}>
-        <Halaman key={jalur} {...parameter} />
+        <div key={jalur} className="halaman-masuk">
+          <Halaman {...parameter} />
+        </div>
       </CangkangAplikasi>
     );
   }

@@ -12,6 +12,7 @@ import "./gaya/tata-letak.css";
 import "./gaya/beranda.css";
 import "./gaya/halaman.css";
 import "./gaya/peta-harga.css";
+import "./gaya/imersif.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

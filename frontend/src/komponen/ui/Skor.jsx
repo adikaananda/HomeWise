@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
 import { warnaSkor } from "../../lib/format";
+import { useHitung, useTerlihat } from "../../lib/gerak";
 
 export function CincinSkor({ skor, ukuran = 120, tebal = 10, satuan = "dari 100", label }) {
   const [tampil, setTampil] = useState(0);
+  const [refTerlihat, terlihat] = useTerlihat();
+  const angka = useHitung(skor ?? 0, terlihat && skor != null, 1200);
   const jari = (ukuran - tebal) / 2;
   const keliling = 2 * Math.PI * jari;
   const nilai = Math.max(0, Math.min(100, skor ?? 0));
 
   useEffect(() => {
+    if (!terlihat) return undefined;
     const id = requestAnimationFrame(() => setTampil(nilai));
     return () => cancelAnimationFrame(id);
-  }, [nilai]);
+  }, [nilai, terlihat]);
 
   return (
-    <div className="cincin" style={{ width: ukuran, height: ukuran }} role="img" aria-label={`${label || "Skor"} ${Math.round(nilai)} dari 100`}>
+    <div ref={refTerlihat} className="cincin" style={{ width: ukuran, height: ukuran }} role="img" aria-label={`${label || "Skor"} ${Math.round(nilai)} dari 100`}>
       <svg width={ukuran} height={ukuran}>
         <circle className="cincin__lintasan" cx={ukuran / 2} cy={ukuran / 2} r={jari} strokeWidth={tebal} />
         <circle
@@ -29,7 +33,7 @@ export function CincinSkor({ skor, ukuran = 120, tebal = 10, satuan = "dari 100"
       </svg>
       <div className="cincin__label">
         <span className="cincin__angka" style={{ fontSize: ukuran * 0.28 }}>
-          {skor == null ? "–" : Math.round(skor)}
+          {skor == null ? "–" : Math.round(angka)}
         </span>
         {ukuran >= 90 && <span className="cincin__satuan">{satuan}</span>}
       </div>

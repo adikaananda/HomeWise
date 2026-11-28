@@ -25,6 +25,7 @@ import { labelTujuan, useKonfigurasi } from "../../../lib/konfigurasi";
 import { useNotifikasi } from "../../../lib/notifikasi";
 import { useRouter } from "../../../lib/router";
 import { TahapProperti } from "../../../komponen/Survei";
+import { Maskot, poseRisiko } from "../../../komponen/Maskot";
 import { PanelTerkunci } from "./PanelTerkunci";
 import { TabBangunan } from "./TabBangunan";
 import { TabBiaya } from "./TabBiaya";
@@ -41,6 +42,12 @@ const TAB = [
   { kode: "biaya", label: "Biaya & investasi", ikon: LuWallet },
   { kode: "laporan", label: "Laporan & tindak lanjut", ikon: LuFileText },
 ];
+
+const URUTAN_LEVEL = { rendah: 0, sedang: 1, tinggi: 2 };
+function risikoTerburuk(lokasi) {
+  const daftar = Object.values(lokasi?.data?.risiko || {}).map((r) => r.level);
+  return daftar.sort((a, b) => (URUTAN_LEVEL[b] ?? 0) - (URUTAN_LEVEL[a] ?? 0))[0];
+}
 
 function RingkasanAtas({ detail, onUbahTujuan, mengubah }) {
   const konfigurasi = useKonfigurasi();
@@ -63,7 +70,15 @@ function RingkasanAtas({ detail, onUbahTujuan, mengubah }) {
           />
         </div>
       </div>
-      <p className="ringkasan-atas__narasi">{lokasi?.hasil.ringkasan}</p>
+      {lokasi?.hasil.ringkasan && (
+        <div className="ringkasan-atas__narasi ringkasan-howy">
+          <Maskot pose={poseRisiko(risikoTerburuk(lokasi))} ukuran={76} />
+          <div>
+            <span className="ringkasan-howy__label">AI Insight</span>
+            <p>{lokasi.hasil.ringkasan}</p>
+          </div>
+        </div>
+      )}
       <dl className="ringkasan-atas__angka">
         <div>
           <dt>Harga penawaran</dt>
